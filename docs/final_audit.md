@@ -6,69 +6,51 @@ Verification date: 2026-06-08.
 
 | Command | Result | Runtime |
 |---|---:|---:|
-| `bash scripts/run_smoke.sh` | passed | script elapsed 147.57s; observed wall 202.5s |
-| `bash scripts/run_all.sh` | passed | script elapsed 449.95s; observed wall 491.8s |
-| `bash scripts/run_claim_audit.sh` | passed | observed wall 11.5s after documentation update |
-| `pytest` | passed, 13 tests | pytest 43.12s; observed wall 55.3s after documentation update |
+| `bash scripts/run_smoke.sh` | passed | script elapsed 171.91s; observed wall 216.2s |
+| `bash scripts/run_all.sh` | passed | script elapsed 486.69s; observed wall 523.7s |
+| `pytest` | passed, 22 tests | pytest 42.56s; observed wall 53.5s |
+| `bash scripts/run_claim_audit.sh` | passed | observed wall 18.4s |
 
 ## Artifact Inventory
 
-- Figures: `figures/figure1_tail_hallucination.png`, `figures/figure2_repair_comparison.png`, `figures/figure3_tail_diagnostics.png`, `figures/figure4_denoising_vs_selection.png`, `figures/figure5_exact_law_validation.png`.
-- Tables: `results/tables/main_metrics.csv`, `results/tables/seed_metrics.csv`, `results/tables/learned_metrics.csv`, `results/tables/denoising_grid.csv`, `results/tables/exact_law_validation.csv`, `results/tables/learned_training_curve.csv`.
-- Model artifacts: `results/models/learned_diffusion_world_model.pt`, `results/models/learned_training_summary.json`.
+- Figures: `figures/figure1_tail_hallucination.png`, `figures/figure2_repair_comparison.png`, `figures/figure3_tail_diagnostics.png`, `figures/figure4_denoising_vs_selection.png`, `figures/figure5_exact_law_validation.png`, `figures/figure6_pilot_repair_gap_closure.png`, `figures/figure7_adaptive_n_gate.png`, `figures/figure8_calibration_reliability.png`, `figures/figure9_near_oracle_ablation.png`.
+- Tables: `results/tables/main_metrics.csv`, `results/tables/seed_metrics.csv`, `results/tables/learned_metrics.csv`, `results/tables/denoising_grid.csv`, `results/tables/exact_law_validation.csv`, `results/tables/pilot_repair_metrics.csv`, `results/tables/gap_closure_by_budget.csv`, `results/tables/adaptive_n_metrics.csv`, `results/tables/calibration_diagnostics.csv`, `results/tables/learned_generalization_metrics.csv`, `results/tables/learned_training_curve.csv`.
+- Model artifacts: `results/models/learned_diffusion_world_model.pt`, `results/models/learned_diffusion_world_model_ensemble0.pt`, `results/models/learned_diffusion_world_model_ensemble1.pt`, `results/models/learned_diffusion_world_model_ensemble2.pt`, `results/models/learned_training_summary.json`.
 - Claim audit: `results/claims_status.md`, `results/claims_status.json`.
 
 ## Strongest Hallucination Artifact
 
 Full-run controlled optimistic raw scoring at `N=64` has selected imagined score `1.375`, selected real utility `0.533`, high-`N` regret `0.133`, imagined-real tail gap `0.641`, and oracle gap `0.477`. The imagined score rises across `N`, while real utility peaks earlier and then drops.
 
-Mode-collapsed raw scoring is similar: selected imagined score `1.561`, selected real utility `0.564`, high-`N` regret `0.138`, and imagined-real tail gap `0.841`.
+Under the learned diffusion-world-model raw scorer at `N=64`, selected imagined score is `1.028`, selected real utility is `-0.787`, high-`N` regret is `0.929`, imagined-real tail gap is `1.417`, and the deployment gate is `block_high_n`.
 
-## Strongest Learned Diffusion-World-Model Artifact
+## Pilot Repair Artifact
 
-The learned denoising MLP trained with a clean-target denoising objective. Full-run training loss decreased from `0.292` to `0.150` over 5 epochs. Under raw scoring at `N=64`, selected imagined score is `0.980`, selected real utility is `-0.803`, high-`N` regret is `0.945`, imagined-real tail gap is `1.379`, and the deployment gate is `block_high_n`.
+The practical held-out controlled pilot repair at `N=64` reports:
 
-## Strongest Repair Artifact
+| Pilot budget | Raw real | Fixed real | Oracle real | Gap closed |
+|---:|---:|---:|---:|---:|
+| 0 | 0.846 | 0.960 | 1.116 | 42.2% |
+| 8 | 0.846 | 1.091 | 1.116 | 90.5% |
+| 32 | 0.846 | 1.092 | 1.116 | 90.9% |
+| 128 | 0.846 | 1.091 | 1.116 | 90.5% |
 
-At `N=64` in the optimistic repair experiment, raw selected real utility is `0.533`. Calibrated scoring reaches `0.594`, uncertainty-aware scoring reaches `0.589`, and consistency-aware scoring reaches `0.569`. These repairs lower imagined score and reduce the tail gap, but they are not universal fixes: the gate still returns `stop_early` or `collect_pilot_labels` where high-`N` regret remains.
+The learned held-out pilot repair closes `51.9%` of the raw-to-oracle gap at budget `32`. The controlled upper-bound `repair_oracle_features` ablation closes `100.0%` of the gap and is explicitly labeled non-deployable.
 
-## Diffusion-World-Model Validity Checklist
+## Learned Generalization Artifact
 
-- Conditional future generation uses state, action sequence, goal, and denoising timestep.
-- Samples are future-state trajectories, not action-only policies.
-- Real utility is measured separately by the toy world rollout.
-- Denoising budget `K` and selection budget `N` are separately varied.
-- Learned-model artifacts are saved and covered by smoke tests.
+The learned ensemble uses three CPU-first denoisers. The primary member's training loss decreases from `0.293` to `0.158` over 5 epochs. Held-out generalization rows report test future-trajectory MSE `0.162`, final-state error `0.759`, held-out utility rank correlation `-0.363`, selected-tail calibration error `1.221`, and sample diversity `0.105`.
 
-## WAM Differentiation Checklist
+## Claim Boundary
 
-- The exact finite law is reused as an abstract measurement tool, not claimed as a novel theorem.
-- Experiments focus on diffusion-generated future trajectories.
-- Metrics include imagined-real tail gap, upper-tail rank correlation, generated future diversity, denoising-vs-selection, and deployment gates.
-- Documentation explicitly distinguishes WAM's imagined rollout mismatch from generated-future selected-tail hallucination.
+Supported claim: pilot-label calibrated lower-confidence selection substantially reduces selected-tail hallucination and closes most of the oracle gap in controlled support-covered regimes.
 
-## Not-Clone Checklist
+Unsupported claims remain blocked: real-robot validation, broad robotics benchmark coverage, universal Best-of-N repair, guaranteed 100% oracle recovery without additional information, and treating diffusion likelihood or imagined score as real utility.
 
-- No WAM code or experiment files were copied.
-- The repo has its own toy world, diffusion-style learned model, analytic future generators, scorer suite, audit ledger, and figures.
-- Prior-project boundaries are documented in `docs/differentiation_from_prior_projects.md`.
+The impossibility boundary is explicit in `docs/theory.md`: if two candidates have identical observable/generated features but different hidden real utility, feature-only selection cannot always choose the better candidate.
 
 ## Paper-Readiness Judgment
 
 **paper-worthy controlled v1, needs benchmark validation for broader robotics claims.**
 
-The controlled and learned toy evidence strongly supports the scoped claims. The repo should not be presented as robot-planning validation or large-benchmark evidence.
-
-## Top Remaining Weaknesses
-
-- The environment is diagnostic and low-dimensional.
-- The learned model is deliberately small and CPU-first.
-- Repair methods improve selected-tail behavior but still require conservative gates.
-- External robotics benchmarks are unsupported in v1.
-
-## Exact Next Steps
-
-- Add a benchmark adapter only after defining real utility independently of internal model score.
-- Train a larger diffusion world model with held-out calibration labels.
-- Add uncertainty calibration curves and pilot-label ablations.
-- Preserve the current claim audit boundaries until benchmark evidence exists.
+The controlled and learned toy evidence supports the scoped diagnostic and repair claims. The repo should not be presented as robot-planning validation or large-benchmark evidence.

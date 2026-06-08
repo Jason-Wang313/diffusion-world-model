@@ -1,6 +1,6 @@
 {
   "mode": "full",
-  "elapsed_seconds": 449.9488909000029,
+  "elapsed_seconds": 486.6872960000037,
   "settings": {
     "seeds": [
       0,
@@ -15,24 +15,56 @@
     "learned_steps": 8
   },
   "training_losses": [
-    0.2921424061059952,
-    0.2631629966199398,
-    0.2300674095749855,
-    0.19193872809410095,
-    0.15001708641648293
+    0.29271386563777924,
+    0.26479458063840866,
+    0.23353449627757072,
+    0.19806662574410439,
+    0.15840476751327515
+  ],
+  "training_losses_by_model": [
+    [
+      0.29271386563777924,
+      0.26479458063840866,
+      0.23353449627757072,
+      0.19806662574410439,
+      0.15840476751327515
+    ],
+    [
+      0.2871674485504627,
+      0.25934937596321106,
+      0.2294679619371891,
+      0.19322752952575684,
+      0.15235359966754913
+    ],
+    [
+      0.2921809032559395,
+      0.2617134489119053,
+      0.2278616949915886,
+      0.18650339543819427,
+      0.14014586992561817
+    ]
   ],
   "figures": [
     "figures\\figure1_tail_hallucination.png",
     "figures\\figure2_repair_comparison.png",
     "figures\\figure3_tail_diagnostics.png",
     "figures\\figure4_denoising_vs_selection.png",
-    "figures\\figure5_exact_law_validation.png"
+    "figures\\figure5_exact_law_validation.png",
+    "figures\\figure6_pilot_repair_gap_closure.png",
+    "figures\\figure7_adaptive_n_gate.png",
+    "figures\\figure8_calibration_reliability.png",
+    "figures\\figure9_near_oracle_ablation.png"
   ],
   "tables": [
     "results/tables/main_metrics.csv",
     "results/tables/seed_metrics.csv",
     "results/tables/learned_metrics.csv",
     "results/tables/denoising_grid.csv",
-    "results/tables/exact_law_validation.csv"
+    "results/tables/exact_law_validation.csv",
+    "results/tables/pilot_repair_metrics.csv",
+    "results/tables/gap_closure_by_budget.csv",
+    "results/tables/adaptive_n_metrics.csv",
+    "results/tables/calibration_diagnostics.csv",
+    "results/tables/learned_generalization_metrics.csv"
   ]
 }

@@ -57,6 +57,39 @@ This repo uses the same abstract finite law, but studies diffusion-world-model f
 - **Optimistic future bias:** generated futures can overstate goal progress for aggressive action sequences.
 - **Denoising budget versus selection budget:** increasing `N` is separated from improving reverse-process quality `K`.
 
+## Pilot-Calibrated Lower-Confidence Repair
+
+The repair experiment spends a small real-rollout pilot budget on targeted candidate labels before deployment. Pilot candidates are drawn from the selected tail, high-uncertainty candidates, low-consistency candidates, disagreement/risk candidates, and a random slice. A NumPy ridge residual model predicts:
+
+```text
+residual = real_utility - imagined_score
+```
+
+from generated-future and action diagnostics. A held-out calibration split estimates a one-sided residual quantile, producing:
+
+```text
+predicted_real_lcb =
+  imagined_score
+  + predicted_residual
+  - conformal_quantile
+  - uncertainty_penalty
+  - selected_tail_penalty(N)
+```
+
+The default selector maximizes this lower-confidence score, not the raw imagined score. Reported gap closure is:
+
+```text
+gap_closed =
+  (fixed_real_utility - raw_real_utility)
+  / max(oracle_real_utility - raw_real_utility, eps)
+```
+
+This is a scoped repair claim. It is supported in controlled support-covered settings where uncertainty and consistency features expose the selected-tail error mode.
+
+## Impossibility Boundary
+
+If two candidates have identical observable/generated features and different hidden real utilities, no selector using only those features can always choose the better candidate. Near-100% closure in this repo is therefore labeled as a controlled upper-bound ablation when hidden hazard information is supplied; it is not a universal deployable guarantee.
+
 ## WAM Distinction
 
 WAM studies explicit imagined rollout / real dynamics mismatch. This repo studies selection over diffusion-generated futures and how generated-future tails behave under plausibility, denoising quality, multimodality, and calibration. The theorem is reused abstractly; the experiments, metrics, and claim boundaries are diffusion-world-model specific.

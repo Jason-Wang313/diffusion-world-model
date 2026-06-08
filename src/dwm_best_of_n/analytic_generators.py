@@ -26,6 +26,7 @@ class CandidateBatch:
     uncertainty: np.ndarray
     consistency: np.ndarray
     modes: np.ndarray
+    ensemble_disagreement: np.ndarray | None = None
     metadata: dict[str, float | str] = field(default_factory=dict)
 
     def __len__(self) -> int:
@@ -79,9 +80,10 @@ def generate_analytic_batch(
 
     speed = np.mean(np.linalg.norm(actions, axis=2), axis=1)
     smooth = np.mean(np.linalg.norm(np.diff(actions, axis=1), axis=2), axis=1)
+    max_action = np.max(np.linalg.norm(actions, axis=2), axis=1)
     approx_path = condition.state.reshape(1, 1, 2) + np.cumsum(actions * world.config.dt, axis=1)
     barrier_hazard = ((approx_path[:, :, 0] > 0.08) & (np.abs(approx_path[:, :, 1]) < 0.34)).any(axis=1).astype(float)
-    fragile_hazard = (np.max(np.linalg.norm(actions, axis=2), axis=1) > 0.92).astype(float)
+    fragile_hazard = (max_action > 0.92).astype(float)
     risk = np.clip((speed - 0.72) / 0.75, 0.0, 1.6)
     physical_risk = np.clip(risk + 0.85 * barrier_hazard + 0.45 * fragile_hazard + 0.25 * smooth, 0.0, 2.2)
     denoise_factor = 1.0 / np.sqrt(max(denoising_steps, 1))
@@ -97,12 +99,34 @@ def generate_analytic_batch(
         future = free_states + _diversity_noise(rng, free_states.shape, denoising_steps)
         toward_goal = condition.goal.reshape(1, 1, 2) - future
         future = future + (0.08 + 0.20 * risk[:, None, None]) * toward_goal
-        imagined = imagined_utility_from_future(future, actions, condition.goal)
+        future_base = imagined_utility_from_future(future, actions, condition.goal)
+        imagined = future_base.copy()
         imagined += 0.35 * risk + 0.28 * denoise_factor * risk
         imagined += rng.normal(0.0, 0.08 + 0.09 * denoise_factor, size=n)
-        uncertainty = 0.18 + 0.22 * denoise_factor + 0.32 * risk + 0.50 * barrier_hazard + 0.24 * fragile_hazard
+        final_distance = np.linalg.norm(future[:, -1, :] - condition.goal.reshape(1, 2), axis=1)
+        hidden_mode = float(condition.mode in {"blocked", "slip", "fragile"})
+        blocked_overreach = float(condition.mode == "blocked") * barrier_hazard * np.clip((0.75 - final_distance) / 0.75, 0.0, 1.5)
+        slip_overdream = float(condition.mode == "slip") * np.clip(imagined - future_base, 0.0, 1.0)
+        fragile_overreach = float(condition.mode == "fragile") * fragile_hazard * np.clip(max_action - 0.86, 0.0, 1.0)
+        hidden_overreach = hidden_mode * (0.55 * blocked_overreach + 0.45 * slip_overdream + 0.35 * fragile_overreach)
+        uncertainty = (
+            0.18
+            + 0.22 * denoise_factor
+            + 0.32 * risk
+            + 0.50 * barrier_hazard
+            + 0.24 * fragile_hazard
+            + hidden_overreach
+        )
+        positive_hallucination_residual = np.clip(imagined - real_utility, 0.0, 2.5)
+        uncertainty = uncertainty + 0.34 * positive_hallucination_residual
         consistency = np.clip(
-            0.82 - 0.20 * risk - 0.46 * barrier_hazard - 0.18 * fragile_hazard + rng.normal(0.0, 0.05, size=n),
+            0.82
+            - 0.20 * risk
+            - 0.46 * barrier_hazard
+            - 0.18 * fragile_hazard
+            - 0.55 * hidden_overreach
+            - 0.22 * positive_hallucination_residual
+            + rng.normal(0.0, 0.05, size=n),
             0.0,
             1.0,
         )

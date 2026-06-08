@@ -17,6 +17,14 @@ from .toy_world import ToyWorld
 
 N_VALUES = (1, 2, 4, 8, 16, 32, 64)
 GATE_DECISIONS = ("allow_high_n", "stop_early", "collect_pilot_labels", "block_high_n")
+GATE_REASONS = (
+    "utility_improves_with_confidence",
+    "high_n_regret_detected",
+    "pilot_labels_needed",
+    "tail_rank_failure",
+    "hidden_mode_unidentifiable",
+    "oracle_baseline",
+)
 
 
 def ci95(values: Iterable[float]) -> float:
@@ -32,13 +40,27 @@ def deployment_gate(
     imagined_real_tail_gap: float,
     oracle_gap: float = 0.0,
 ) -> str:
+    return deployment_gate_with_reason(
+        high_n_regret,
+        upper_tail_rank_correlation,
+        imagined_real_tail_gap,
+        oracle_gap,
+    )[0]
+
+
+def deployment_gate_with_reason(
+    high_n_regret: float,
+    upper_tail_rank_correlation: float,
+    imagined_real_tail_gap: float,
+    oracle_gap: float = 0.0,
+) -> tuple[str, str]:
     if high_n_regret > 0.18 and upper_tail_rank_correlation < 0.18:
-        return "block_high_n"
+        return "block_high_n", "tail_rank_failure"
     if high_n_regret > 0.06 or (imagined_real_tail_gap > 0.9 and oracle_gap > 0.10):
-        return "collect_pilot_labels"
+        return "collect_pilot_labels", "pilot_labels_needed"
     if high_n_regret > 0.015:
-        return "stop_early"
-    return "allow_high_n"
+        return "stop_early", "high_n_regret_detected"
+    return "allow_high_n", "utility_improves_with_confidence"
 
 
 def _selected_index(scores: np.ndarray, n: int) -> int:
@@ -105,13 +127,14 @@ def evaluate_batches(
     running_best = df["selected_real_utility_mean"].cummax()
     df["high_n_regret"] = np.maximum(0.0, running_best - df["selected_real_utility_mean"])
     max_row = df.loc[df["N"] == max(ns)].iloc[0]
-    decision = deployment_gate(
+    decision, reason = deployment_gate_with_reason(
         float(max_row["high_n_regret"]),
         float(max_row["upper_tail_rank_correlation"]),
         float(max_row["imagined_real_tail_gap"]),
         float(max_row["oracle_gap"]),
     )
     df["deployment_gate"] = decision
+    df["gate_reason"] = reason
     return df
 
 
@@ -137,6 +160,7 @@ def aggregate_seed_metrics(seed_rows: pd.DataFrame) -> pd.DataFrame:
         row["selected_real_utility_ci95"] = ci95(group["selected_real_utility_mean"])
         row["selected_imagined_score_ci95"] = ci95(group["selected_imagined_score_mean"])
         row["deployment_gate"] = "collect_pilot_labels"
+        row["gate_reason"] = "pilot_labels_needed"
         if "denoising_steps" in group:
             row["denoising_steps"] = int(group["denoising_steps"].iloc[0])
         rows.append(row)
@@ -144,7 +168,7 @@ def aggregate_seed_metrics(seed_rows: pd.DataFrame) -> pd.DataFrame:
     for keys, group in df.groupby(["experiment", "generator", "scorer"], sort=False):
         max_n = int(group["N"].max())
         high = group[group["N"] == max_n].iloc[0]
-        decision = deployment_gate(
+        decision, reason = deployment_gate_with_reason(
             float(high["high_n_regret"]),
             float(high["upper_tail_rank_correlation"]),
             float(high["imagined_real_tail_gap"]),
@@ -156,6 +180,7 @@ def aggregate_seed_metrics(seed_rows: pd.DataFrame) -> pd.DataFrame:
             & (df["scorer"] == keys[2])
         )
         df.loc[mask, "deployment_gate"] = decision
+        df.loc[mask, "gate_reason"] = reason
     return df
 
 

@@ -22,6 +22,9 @@ COLORS = {
     "consistency_aware": "#8c564b",
     "random": "#7f7f7f",
     "oracle": "#111111",
+    "pilot_lcb": "#2ca02c",
+    "repair_oracle_features": "#111111",
+    "repair_many_pilot_labels": "#ff7f0e",
 }
 
 
@@ -134,15 +137,128 @@ def figure5_exact_law_validation(validation: pd.DataFrame, figures_dir: str | Pa
     return path
 
 
+def figure6_pilot_repair_gap_closure(gap: pd.DataFrame, figures_dir: str | Path) -> Path:
+    df = gap[
+        (gap["repair_model"] == "pilot_lcb")
+        & (gap["experiment"].isin(["controlled_pilot_repair", "learned_pilot_repair"]))
+    ].sort_values(["experiment", "pilot_budget"])
+    fig, ax = plt.subplots(figsize=(6.8, 4.1))
+    for experiment, label, color in [
+        ("controlled_pilot_repair", "controlled optimistic", "#2ca02c"),
+        ("learned_pilot_repair", "learned held-out", "#1f77b4"),
+    ]:
+        part = df[df["experiment"] == experiment]
+        if part.empty:
+            continue
+        ax.plot(part["pilot_budget"], part["gap_closed_clamped"], marker="o", label=label, color=color)
+    ax.axhline(0.70, color="#555555", linestyle="--", linewidth=1.0, alpha=0.6)
+    ax.set_xscale("symlog", linthresh=8)
+    ax.set_xlabel("Pilot real-rollout labels")
+    ax.set_ylabel("Oracle gap closed")
+    ax.set_ylim(-0.05, 1.08)
+    ax.set_title("Pilot-label LCB repair closes selected-tail gap")
+    ax.grid(True, alpha=0.25)
+    ax.legend(frameon=False)
+    path = Path(figures_dir) / "figure6_pilot_repair_gap_closure.png"
+    _finish(fig, path)
+    return path
+
+
+def figure7_adaptive_n_gate(adaptive: pd.DataFrame, figures_dir: str | Path) -> Path:
+    df = adaptive[
+        (adaptive["experiment"] == "controlled_pilot_repair")
+        & (adaptive["repair_model"] == "pilot_lcb")
+        & (adaptive["pilot_budget"].isin([0, 32, 128]))
+    ].sort_values(["pilot_budget", "N"])
+    fig, ax = plt.subplots(figsize=(7.0, 4.2))
+    markers = {
+        "allow_high_n": "o",
+        "stop_early": "s",
+        "collect_pilot_labels": "^",
+        "block_high_n": "x",
+    }
+    colors = {0: "#7f7f7f", 32: "#2ca02c", 128: "#111111"}
+    for budget, part in df.groupby("pilot_budget"):
+        ax.plot(part["N"], part["selected_lcb_mean"], color=colors.get(int(budget), "#1f77b4"), linewidth=1.5, label=f"budget {int(budget)}")
+        for decision, marker in markers.items():
+            points = part[part["deployment_gate"] == decision]
+            if not points.empty:
+                ax.scatter(points["N"], points["selected_lcb_mean"], marker=marker, color=colors.get(int(budget), "#1f77b4"), s=42)
+    ax.set_xscale("log", base=2)
+    ax.set_xlabel("N generated futures")
+    ax.set_ylabel("Selected lower-confidence estimate")
+    ax.set_title("Adaptive Best-of-N gate")
+    ax.grid(True, alpha=0.25)
+    ax.legend(frameon=False, ncol=3)
+    path = Path(figures_dir) / "figure7_adaptive_n_gate.png"
+    _finish(fig, path)
+    return path
+
+
+def figure8_calibration_reliability(calibration: pd.DataFrame, figures_dir: str | Path) -> Path:
+    df = calibration[calibration["repair_model"] == "pilot_lcb"].copy()
+    fig, axes = plt.subplots(1, 2, figsize=(8.2, 3.9))
+    for experiment, label, color in [
+        ("controlled_pilot_repair", "controlled", "#2ca02c"),
+        ("learned_pilot_repair", "learned", "#1f77b4"),
+    ]:
+        part = df[df["experiment"] == experiment].sort_values("pilot_budget")
+        if part.empty:
+            continue
+        axes[0].plot(part["pilot_budget"], part["eval_lower_bound_coverage"], marker="o", label=label, color=color)
+        axes[1].plot(part["pilot_budget"], part["conformal_quantile"], marker="o", label=label, color=color)
+    axes[0].axhline(0.90, color="#555555", linestyle="--", linewidth=1.0, alpha=0.6)
+    axes[0].set_ylabel("Held-out lower-bound coverage")
+    axes[1].set_ylabel("Conformal quantile")
+    for ax in axes:
+        ax.set_xscale("symlog", linthresh=8)
+        ax.set_xlabel("Pilot labels")
+        ax.grid(True, alpha=0.25)
+    axes[0].set_title("Coverage")
+    axes[1].set_title("Residual bound")
+    axes[0].legend(frameon=False)
+    path = Path(figures_dir) / "figure8_calibration_reliability.png"
+    _finish(fig, path)
+    return path
+
+
+def figure9_near_oracle_ablation(gap: pd.DataFrame, figures_dir: str | Path) -> Path:
+    rows = gap[
+        (gap["experiment"].isin(["controlled_pilot_repair", "near_oracle_ablation"]))
+        & (gap["pilot_budget"].isin([32, 128, 512]))
+    ].copy()
+    rows["label"] = rows["repair_model"] + " / " + rows["pilot_budget"].astype(int).astype(str)
+    rows = rows.sort_values(["controlled_upper_bound", "repair_model", "pilot_budget"])
+    fig, ax = plt.subplots(figsize=(7.2, 4.2))
+    colors = ["#2ca02c" if not upper else "#111111" for upper in rows["controlled_upper_bound"]]
+    ax.bar(np.arange(len(rows)), rows["gap_closed_clamped"], color=colors)
+    ax.axhline(0.95, color="#555555", linestyle="--", linewidth=1.0, alpha=0.6)
+    ax.set_xticks(np.arange(len(rows)), labels=rows["label"], rotation=25, ha="right")
+    ax.set_ylabel("Oracle gap closed")
+    ax.set_ylim(0.0, 1.08)
+    ax.set_title("Near-oracle upper-bound ablation")
+    ax.grid(True, axis="y", alpha=0.25)
+    path = Path(figures_dir) / "figure9_near_oracle_ablation.png"
+    _finish(fig, path)
+    return path
+
+
 def write_all_figures(results_dir: str | Path, figures_dir: str | Path) -> list[Path]:
     results_dir = Path(results_dir)
     metrics = pd.read_csv(results_dir / "tables" / "main_metrics.csv")
     grid = pd.read_csv(results_dir / "tables" / "denoising_grid.csv")
     validation = pd.read_csv(results_dir / "tables" / "exact_law_validation.csv")
+    gap = pd.read_csv(results_dir / "tables" / "gap_closure_by_budget.csv")
+    adaptive = pd.read_csv(results_dir / "tables" / "adaptive_n_metrics.csv")
+    calibration = pd.read_csv(results_dir / "tables" / "calibration_diagnostics.csv")
     return [
         figure1_tail_hallucination(metrics, figures_dir),
         figure2_repair_comparison(metrics, figures_dir),
         figure3_tail_diagnostics(metrics, figures_dir),
         figure4_denoising_vs_selection(grid, figures_dir),
         figure5_exact_law_validation(validation, figures_dir),
+        figure6_pilot_repair_gap_closure(gap, figures_dir),
+        figure7_adaptive_n_gate(adaptive, figures_dir),
+        figure8_calibration_reliability(calibration, figures_dir),
+        figure9_near_oracle_ablation(gap, figures_dir),
     ]

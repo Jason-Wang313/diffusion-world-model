@@ -9,7 +9,9 @@ Generated claim status lives in `results/claims_status.md` and `results/claims_s
 - Controlled toy worlds show selected-tail hallucination for diffusion-like future generators.
 - The small learned denoising MLP trains and samples future trajectories in the toy world.
 - Mode collapse, plausibility bias, and denoising-budget effects are measured with diagnostics.
-- Repair is scoped to calibrated, uncertainty-aware, and consistency-aware scoring in the controlled setting.
+- Pilot-label calibrated lower-confidence selection is evaluated in the controlled setting.
+- Adaptive Best-of-N gates report `allow_high_n`, `stop_early`, `collect_pilot_labels`, or `block_high_n` with reason codes.
+- Near-oracle ablations are controlled upper bounds when hidden hazard information is supplied.
 
 ## Explicitly Unsupported Claims
 
@@ -20,6 +22,7 @@ Generated claim status lives in `results/claims_status.md` and `results/claims_s
 | Best-of-N always helps. | UNSUPPORTED | The repo shows conditional behavior. |
 | More samples always hurt. | UNSUPPORTED | The failure is selected-tail dependent, not universal. |
 | Calibration always fixes the issue. | UNSUPPORTED | Repair is empirical and scoped. |
+| Pilot labels guarantee 100% oracle recovery. | UNSUPPORTED | Hidden modes can be unidentifiable from generated features. |
 | Diffusion likelihood equals real utility. | UNSUPPORTED | The repo separates imagined score from real utility. |
 | This is not toy evidence unless real benchmarks are implemented. | UNSUPPORTED | It is toy evidence with explicit boundaries. |
 | This is just a renamed WAM project. | UNSUPPORTED | The artifact studies diffusion-generated future tails. |

@@ -1,5 +1,6 @@
 from dwm_best_of_n.evaluation import (
     GATE_DECISIONS,
+    GATE_REASONS,
     N_VALUES,
     deployment_gate,
     evaluate_analytic_variant,
@@ -38,5 +39,6 @@ def test_metric_schema_from_tiny_controlled_eval():
     }
     assert required.issubset(metrics.columns)
     assert set(metrics["deployment_gate"]).issubset(set(GATE_DECISIONS))
+    assert set(metrics["gate_reason"]).issubset(set(GATE_REASONS))
     assert len(seeds) == 2 * 3
     assert max(N_VALUES) == 64

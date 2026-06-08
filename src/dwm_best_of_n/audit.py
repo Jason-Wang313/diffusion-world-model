@@ -5,12 +5,32 @@ from __future__ import annotations
 import json
 from pathlib import Path
 
+import pandas as pd
+
 
 STATUSES = ("SUPPORTED", "PARTIAL", "UNSUPPORTED")
 
 
 def _exists_nonempty(path: Path) -> bool:
     return path.exists() and path.stat().st_size > 0
+
+
+def _gap_value(root: Path, experiment: str, repair_model: str, budget: int) -> float | None:
+    path = root / "results" / "tables" / "gap_closure_by_budget.csv"
+    if not _exists_nonempty(path):
+        return None
+    try:
+        df = pd.read_csv(path)
+    except Exception:
+        return None
+    rows = df[
+        (df["experiment"] == experiment)
+        & (df["repair_model"] == repair_model)
+        & (df["pilot_budget"] == budget)
+    ]
+    if rows.empty:
+        return None
+    return float(rows.iloc[0]["gap_closed"])
 
 
 def build_claims(repo_root: str | Path = ".") -> list[dict[str, str]]:
@@ -23,12 +43,28 @@ def build_claims(repo_root: str | Path = ".") -> list[dict[str, str]]:
             "figure3_tail_diagnostics.png",
             "figure4_denoising_vs_selection.png",
             "figure5_exact_law_validation.png",
+            "figure6_pilot_repair_gap_closure.png",
+            "figure7_adaptive_n_gate.png",
+            "figure8_calibration_reliability.png",
+            "figure9_near_oracle_ablation.png",
         ]
     )
     metrics_ok = _exists_nonempty(root / "results" / "tables" / "main_metrics.csv")
     model_ok = _exists_nonempty(root / "results" / "models" / "learned_diffusion_world_model.pt")
     validation_ok = _exists_nonempty(root / "results" / "tables" / "exact_law_validation.csv")
     denoising_ok = _exists_nonempty(root / "results" / "tables" / "denoising_grid.csv")
+    pilot_ok = _exists_nonempty(root / "results" / "tables" / "pilot_repair_metrics.csv")
+    adaptive_ok = _exists_nonempty(root / "results" / "tables" / "adaptive_n_metrics.csv")
+    calibration_ok = _exists_nonempty(root / "results" / "tables" / "calibration_diagnostics.csv")
+    learned_gen_ok = _exists_nonempty(root / "results" / "tables" / "learned_generalization_metrics.csv")
+    controlled_gap32 = _gap_value(root, "controlled_pilot_repair", "pilot_lcb", 32)
+    controlled_gap128 = _gap_value(root, "controlled_pilot_repair", "pilot_lcb", 128)
+    learned_gap32 = _gap_value(root, "learned_pilot_repair", "pilot_lcb", 32)
+    oracle_gap128 = _gap_value(root, "near_oracle_ablation", "repair_oracle_features", 128)
+    controlled_repair_supported = controlled_gap32 is not None and controlled_gap32 >= 0.70
+    controlled_repair_partial = controlled_gap32 is not None and controlled_gap32 > 0.0
+    learned_repair_supported = learned_gap32 is not None and learned_gap32 >= 0.50
+    near_oracle_supported = oracle_gap128 is not None and oracle_gap128 >= 0.95
     claims = [
         {
             "group": "theorem claims",
@@ -44,9 +80,9 @@ def build_claims(repo_root: str | Path = ".") -> list[dict[str, str]]:
         },
         {
             "group": "learned diffusion-world-model claims",
-            "claim": "A small conditional denoising MLP trains and produces sampled future trajectories for the toy world.",
-            "status": "SUPPORTED" if model_ok else "PARTIAL",
-            "evidence": "results/models/learned_diffusion_world_model.pt and results/tables/learned_metrics.csv",
+            "claim": "A 3-member small conditional denoising ensemble trains and is evaluated on held-out toy conditions.",
+            "status": "SUPPORTED" if model_ok and learned_gen_ok else "PARTIAL",
+            "evidence": "results/models/learned_diffusion_world_model.pt and results/tables/learned_generalization_metrics.csv",
         },
         {
             "group": "multimodal/mode-collapse claims",
@@ -62,9 +98,39 @@ def build_claims(repo_root: str | Path = ".") -> list[dict[str, str]]:
         },
         {
             "group": "repair claims",
-            "claim": "Calibration-, uncertainty-, and consistency-aware scoring are evaluated as controlled selected-tail repair, not universal fixes.",
-            "status": "SUPPORTED" if metrics_ok and figures_ok else "PARTIAL",
-            "evidence": "repair rows in results/tables/main_metrics.csv and figure2_repair_comparison.png",
+            "claim": "Pilot-label calibrated lower-confidence selection closes most of the oracle gap in the controlled optimistic toy at budget 32.",
+            "status": "SUPPORTED" if controlled_repair_supported else ("PARTIAL" if controlled_repair_partial else "UNSUPPORTED"),
+            "evidence": "results/tables/gap_closure_by_budget.csv and figure6_pilot_repair_gap_closure.png",
+        },
+        {
+            "group": "repair claims",
+            "claim": "Budget 128 pilot repair is a stronger controlled repair than the budget 32 practical setting.",
+            "status": "SUPPORTED" if controlled_gap128 is not None and controlled_gap128 >= 0.85 else "PARTIAL",
+            "evidence": "pilot_budget=128 rows in results/tables/gap_closure_by_budget.csv",
+        },
+        {
+            "group": "repair claims",
+            "claim": "Adaptive Best-of-N deployment emits one gate decision with an explicit reason code.",
+            "status": "SUPPORTED" if adaptive_ok else "PARTIAL",
+            "evidence": "results/tables/adaptive_n_metrics.csv and figure7_adaptive_n_gate.png",
+        },
+        {
+            "group": "calibration claims",
+            "claim": "Residual conformal calibration reports held-out lower-bound diagnostics.",
+            "status": "SUPPORTED" if calibration_ok else "PARTIAL",
+            "evidence": "results/tables/calibration_diagnostics.csv and figure8_calibration_reliability.png",
+        },
+        {
+            "group": "learned repair claims",
+            "claim": "Pilot repair reduces selected-tail hallucination on held-out learned diffusion-world-model conditions.",
+            "status": "SUPPORTED" if learned_repair_supported else ("PARTIAL" if learned_gap32 is not None else "UNSUPPORTED"),
+            "evidence": "learned_pilot_repair rows in results/tables/gap_closure_by_budget.csv",
+        },
+        {
+            "group": "near-oracle upper-bound claims",
+            "claim": "Near-100% closure is possible in the controlled toy when hidden hazard features are supplied.",
+            "status": "SUPPORTED" if near_oracle_supported else "PARTIAL",
+            "evidence": "repair_oracle_features rows and figure9_near_oracle_ablation.png",
         },
         {
             "group": "optional benchmark claims",
@@ -83,6 +149,12 @@ def build_claims(repo_root: str | Path = ".") -> list[dict[str, str]]:
             "claim": "Best-of-N always helps; more samples always hurt; calibration always fixes the issue; diffusion likelihood equals real utility.",
             "status": "UNSUPPORTED",
             "evidence": "blocked claim boundaries in docs/claims.md",
+        },
+        {
+            "group": "forbidden overclaims",
+            "claim": "Universal 100% Best-of-N repair is guaranteed without additional information.",
+            "status": "UNSUPPORTED",
+            "evidence": "blocked by hidden-mode impossibility note in docs/theory.md",
         },
         {
             "group": "forbidden overclaims",
