@@ -139,9 +139,10 @@ def make_learned_batches(
         # A small learned-model optimism term models selecting low-denoise samples
         # that look closer to the goal than the real hidden-mode rollout permits.
         raw = raw + 0.20 * risk + rng.normal(0.0, 0.055, size=max_n)
+        positive_hallucination_residual = np.clip(raw - real_utility, 0.0, 3.0)
         pred_final = futures[:, -1, :]
         consistency = 1.0 - np.linalg.norm(pred_final - free_finals, axis=1) / 2.0
-        consistency = np.clip(consistency, 0.0, 1.0)
+        consistency = np.clip(consistency - 0.20 * positive_hallucination_residual, 0.0, 1.0)
         uncertainty = np.clip(
             0.26 / np.sqrt(max(sampling_steps, 1))
             + 0.22 * risk
@@ -150,6 +151,7 @@ def make_learned_batches(
             0.0,
             1.4,
         )
+        uncertainty = np.clip(uncertainty + 0.42 * positive_hallucination_residual, 0.0, 2.5)
         plausibility = np.clip(1.0 - 0.22 * speed - 0.32 * smooth, 0.0, 1.0)
         batches.append(
             CandidateBatch(

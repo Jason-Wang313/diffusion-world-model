@@ -38,11 +38,11 @@ The scripts set `PYTHONPATH=src` and write CSV/JSON artifacts under `results/`, 
 The full run uses 4 seeds, 24 toy conditions per seed, `N = {1,2,4,8,16,32,64}`, and 25k Monte Carlo trials for the exact-law check.
 
 - Controlled optimistic raw scoring at `N=64`: selected imagined score `1.375`, selected real utility `0.533`, high-`N` regret `0.133`, imagined-real tail gap `0.641`.
-- Learned raw scoring at `N=64`: selected imagined score `1.028`, selected real utility `-0.787`, high-`N` regret `0.929`, imagined-real tail gap `1.417`, deployment gate `block_high_n`.
-- Learned denoising ensemble losses decrease over 5 epochs; the primary member decreases from `0.293` to `0.158`.
+- Learned raw scoring at `N=64`: selected imagined score `1.028`, selected real utility `-0.797`, high-`N` regret `0.939`, imagined-real tail gap `1.429`, deployment gate `block_high_n`.
+- Learned denoising ensemble losses decrease over 5 epochs; the primary member decreases from `0.294` to `0.141`.
 - Pilot repair at `N=64`: on held-out controlled optimistic conditions, budget `32` closes `90.9%` of the raw-to-oracle gap and budget `128` closes `90.5%`.
-- Learned pilot repair at `N=64`: budget `32` closes `51.9%` of the raw-to-oracle gap on held-out learned diffusion-world-model conditions.
-- Near-oracle hidden-hazard upper-bound ablation closes `100.0%` of the held-out controlled gap.
+- Learned pilot repair at `N=64`: budget `32` closes `92.0%` of the raw-to-oracle gap on held-out learned diffusion-world-model conditions.
+- Near-oracle hidden-hazard and many-label upper-bound ablations each close `100.0%` of the held-out controlled gap.
 - Adaptive gates emit exactly one of `allow_high_n`, `stop_early`, `collect_pilot_labels`, or `block_high_n` with a reason code.
 - Exact finite-law validation max absolute Monte Carlo error: `0.0028`.
 

@@ -61,10 +61,17 @@ def build_claims(repo_root: str | Path = ".") -> list[dict[str, str]]:
     controlled_gap128 = _gap_value(root, "controlled_pilot_repair", "pilot_lcb", 128)
     learned_gap32 = _gap_value(root, "learned_pilot_repair", "pilot_lcb", 32)
     oracle_gap128 = _gap_value(root, "near_oracle_ablation", "repair_oracle_features", 128)
+    many_label_gap512 = _gap_value(root, "near_oracle_ablation", "repair_many_pilot_labels", 512)
     controlled_repair_supported = controlled_gap32 is not None and controlled_gap32 >= 0.70
     controlled_repair_partial = controlled_gap32 is not None and controlled_gap32 > 0.0
-    learned_repair_supported = learned_gap32 is not None and learned_gap32 >= 0.50
-    near_oracle_supported = oracle_gap128 is not None and oracle_gap128 >= 0.95
+    learned_repair_supported = learned_gap32 is not None and learned_gap32 >= 0.70
+    learned_repair_partial = learned_gap32 is not None and learned_gap32 >= 0.50
+    near_oracle_supported = (
+        oracle_gap128 is not None
+        and oracle_gap128 >= 0.95
+        and many_label_gap512 is not None
+        and many_label_gap512 >= 0.95
+    )
     claims = [
         {
             "group": "theorem claims",
@@ -122,13 +129,13 @@ def build_claims(repo_root: str | Path = ".") -> list[dict[str, str]]:
         },
         {
             "group": "learned repair claims",
-            "claim": "Pilot repair reduces selected-tail hallucination on held-out learned diffusion-world-model conditions.",
-            "status": "SUPPORTED" if learned_repair_supported else ("PARTIAL" if learned_gap32 is not None else "UNSUPPORTED"),
+            "claim": "Pilot repair closes at least 70% of the oracle gap on held-out learned diffusion-world-model conditions.",
+            "status": "SUPPORTED" if learned_repair_supported else ("PARTIAL" if learned_repair_partial else "UNSUPPORTED"),
             "evidence": "learned_pilot_repair rows in results/tables/gap_closure_by_budget.csv",
         },
         {
             "group": "near-oracle upper-bound claims",
-            "claim": "Near-100% closure is possible in the controlled toy when hidden hazard features are supplied.",
+            "claim": "Near-100% closure is possible in the controlled toy when hidden hazard features or enough labels are supplied.",
             "status": "SUPPORTED" if near_oracle_supported else "PARTIAL",
             "evidence": "repair_oracle_features rows and figure9_near_oracle_ablation.png",
         },

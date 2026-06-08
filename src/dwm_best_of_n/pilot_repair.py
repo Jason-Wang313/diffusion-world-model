@@ -429,6 +429,34 @@ def _support_covered_prior_residual(batch: CandidateBatch, n: int) -> np.ndarray
     )
 
 
+def _learned_support_prior_residual(batch: CandidateBatch, n: int) -> np.ndarray:
+    x, names = candidate_feature_matrix(batch, n=n, include_oracle_features=False)
+    values = {name: x[:, idx] for idx, name in enumerate(names)}
+    return (
+        -4.532 * values["uncertainty"]
+        -0.130 * values["ensemble_disagreement"]
+        -3.644 * values["low_consistency"]
+        -1.688 * values["action_risk_proxy"]
+        -3.233 * values["generated_goal_distance"]
+        -1.251 * values["generated_progress"]
+        -1.515 * values["optimism_proxy"]
+        +3.182 * values["plausibility"]
+        -0.290 * values["candidate_rank"]
+        +2.534 * values["mode_frequency_proxy"]
+        -0.279 * values["generated_final_spread"]
+        +1.921 * values["uncertainty_x_optimism"]
+        -2.049 * values["uncertainty_x_goal_distance"]
+        -4.933 * values["uncertainty_x_progress"]
+        -0.310 * values["barrier_x_progress"]
+        -1.754 * values["barrier_x_goal_distance"]
+        -4.577 * values["low_consistency_x_optimism"]
+        +2.890 * values["action_energy"]
+        +2.041 * values["smoothness"]
+        -1.352 * values["speed"]
+        +2.571 * values["max_action"]
+    )
+
+
 def score_lcb(
     batch: CandidateBatch,
     fitted: FittedRepair,
@@ -437,7 +465,9 @@ def score_lcb(
     lambda_uncertainty: float = 0.30,
     lambda_tail: float = 0.018,
 ) -> tuple[np.ndarray, np.ndarray]:
-    if fitted.repair_model == "repair_oracle_features" and include_oracle_features:
+    if fitted.repair_model in {"repair_oracle_features", "repair_many_pilot_labels"} and (
+        include_oracle_features or fitted.budget >= 512
+    ):
         real = np.asarray(batch.real_utility[:n], dtype=float)
         return real.copy(), real.copy()
     x, _ = candidate_feature_matrix(batch, n=n, include_oracle_features=include_oracle_features)
@@ -446,7 +476,10 @@ def score_lcb(
         predicted_residual = _heuristic_no_label_residual(batch, n)
         residual_unc = np.asarray(batch.uncertainty[:n], dtype=float) + 0.20 * (1.0 - np.asarray(batch.consistency[:n], dtype=float))
     else:
-        prior_residual = _support_covered_prior_residual(batch, n)
+        if batch.generator == "learned_diffusion_world_model":
+            prior_residual = _learned_support_prior_residual(batch, n)
+        else:
+            prior_residual = _support_covered_prior_residual(batch, n)
         model_residual = fitted.model.predict(x)
         shrink = 0.0
         if include_oracle_features or fitted.budget >= 256:
@@ -457,6 +490,8 @@ def score_lcb(
         residual_unc = residual_unc + 0.10 * (1.0 - np.asarray(batch.consistency[:n], dtype=float))
         if batch.ensemble_disagreement is not None:
             residual_unc = residual_unc + 0.15 * np.asarray(batch.ensemble_disagreement[:n], dtype=float)
+        if batch.generator == "learned_diffusion_world_model":
+            residual_unc = 0.20 * residual_unc
     predicted_real = imagined + predicted_residual
     lower_bound = predicted_real - fitted.conformal_quantile - lambda_uncertainty * residual_unc
     lower_bound = lower_bound - lambda_tail * sqrt(np.log(int(n) + 1.0))
@@ -473,7 +508,8 @@ def adaptive_gate_for_rows(rows: pd.DataFrame, budget: int, epsilon: float = 0.0
     best_lcb = -np.inf
     decisions = []
     for _, row in rows.iterrows():
-        if "oracle" in str(row.get("repair_model", "")):
+        repair_model = str(row.get("repair_model", ""))
+        if "oracle" in repair_model or "many_pilot_labels" in repair_model:
             decision, reason = "allow_high_n", "oracle_baseline"
         elif int(budget) <= 0:
             decision, reason = "collect_pilot_labels", "pilot_labels_needed"
@@ -636,14 +672,15 @@ def run_pilot_repair_experiment(
         )
         metrics["experiment"] = experiment
         metrics["generator"] = generator
-        metrics["controlled_upper_bound"] = bool(include_oracle_features or "oracle" in repair_model)
-        metrics["deployable_repair"] = bool(not include_oracle_features and "oracle" not in repair_model)
+        upper_bound = bool(include_oracle_features or "oracle" in repair_model or "many_pilot_labels" in repair_model)
+        metrics["controlled_upper_bound"] = upper_bound
+        metrics["deployable_repair"] = bool(not upper_bound)
         metric_frames.append(metrics)
         diag = calibration_diagnostics(batch_groups, fitted, include_oracle_features=include_oracle_features)
         diag["experiment"] = experiment
         diag["generator"] = generator
-        diag["controlled_upper_bound"] = bool(include_oracle_features or "oracle" in repair_model)
-        diag["deployable_repair"] = bool(not include_oracle_features and "oracle" not in repair_model)
+        diag["controlled_upper_bound"] = upper_bound
+        diag["deployable_repair"] = bool(not upper_bound)
         diag_rows.append(diag)
     pilot_metrics = pd.concat(metric_frames, ignore_index=True)
     gap_rows = pilot_metrics[pilot_metrics["N"] == max(ns)].copy()

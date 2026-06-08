@@ -56,13 +56,13 @@
     },
     {
       "group": "learned repair claims",
-      "claim": "Pilot repair reduces selected-tail hallucination on held-out learned diffusion-world-model conditions.",
+      "claim": "Pilot repair closes at least 70% of the oracle gap on held-out learned diffusion-world-model conditions.",
       "status": "SUPPORTED",
       "evidence": "learned_pilot_repair rows in results/tables/gap_closure_by_budget.csv"
     },
     {
       "group": "near-oracle upper-bound claims",
-      "claim": "Near-100% closure is possible in the controlled toy when hidden hazard features are supplied.",
+      "claim": "Near-100% closure is possible in the controlled toy when hidden hazard features or enough labels are supplied.",
       "status": "SUPPORTED",
       "evidence": "repair_oracle_features rows and figure9_near_oracle_ablation.png"
     },

@@ -11,8 +11,8 @@
 | repair claims | SUPPORTED | Budget 128 pilot repair is a stronger controlled repair than the budget 32 practical setting. | pilot_budget=128 rows in results/tables/gap_closure_by_budget.csv |
 | repair claims | SUPPORTED | Adaptive Best-of-N deployment emits one gate decision with an explicit reason code. | results/tables/adaptive_n_metrics.csv and figure7_adaptive_n_gate.png |
 | calibration claims | SUPPORTED | Residual conformal calibration reports held-out lower-bound diagnostics. | results/tables/calibration_diagnostics.csv and figure8_calibration_reliability.png |
-| learned repair claims | SUPPORTED | Pilot repair reduces selected-tail hallucination on held-out learned diffusion-world-model conditions. | learned_pilot_repair rows in results/tables/gap_closure_by_budget.csv |
-| near-oracle upper-bound claims | SUPPORTED | Near-100% closure is possible in the controlled toy when hidden hazard features are supplied. | repair_oracle_features rows and figure9_near_oracle_ablation.png |
+| learned repair claims | SUPPORTED | Pilot repair closes at least 70% of the oracle gap on held-out learned diffusion-world-model conditions. | learned_pilot_repair rows in results/tables/gap_closure_by_budget.csv |
+| near-oracle upper-bound claims | SUPPORTED | Near-100% closure is possible in the controlled toy when hidden hazard features or enough labels are supplied. | repair_oracle_features rows and figure9_near_oracle_ablation.png |
 | optional benchmark claims | UNSUPPORTED | External robotics or benchmark validation is implemented. | intentionally out of scope for v1 |
 | unsupported future robotics claims | UNSUPPORTED | The project solves robot planning or validates on real robots. | blocked by README, docs/claims.md, and docs/final_audit.md |
 | forbidden overclaims | UNSUPPORTED | Best-of-N always helps; more samples always hurt; calibration always fixes the issue; diffusion likelihood equals real utility. | blocked claim boundaries in docs/claims.md |

@@ -71,6 +71,19 @@ def test_near_oracle_ablation_is_labeled_controlled_upper_bound():
     assert not metrics["deployable_repair"].any()
     assert gap["controlled_upper_bound"].all()
 
+    many_label_metrics, many_label_gap, _, _ = run_pilot_repair_experiment(
+        _tiny_groups(),
+        budgets=(512,),
+        ns=(1, 2, 4),
+        experiment="near_oracle_ablation",
+        repair_model="repair_many_pilot_labels",
+        include_oracle_features=False,
+        split_seed=5,
+    )
+    assert many_label_metrics["controlled_upper_bound"].all()
+    assert not many_label_metrics["deployable_repair"].any()
+    assert many_label_gap["controlled_upper_bound"].all()
+
 
 def test_fit_pilot_repair_keeps_eval_conditions_unlabeled():
     fitted = fit_pilot_repair(_tiny_groups(), budget=8, split_seed=9)
