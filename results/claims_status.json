@@ -1,0 +1,64 @@
+{
+  "claims": [
+    {
+      "group": "theorem claims",
+      "claim": "Finite tie-aware Best-of-N expected selected utility is implemented and Monte Carlo validated.",
+      "status": "SUPPORTED",
+      "evidence": "results/tables/exact_law_validation.csv and figure5_exact_law_validation.png"
+    },
+    {
+      "group": "controlled toy claims",
+      "claim": "A controlled diffusion-world toy shows selected imagined score rising while selected real utility can stagnate or drop.",
+      "status": "SUPPORTED",
+      "evidence": "results/tables/main_metrics.csv and figure1_tail_hallucination.png"
+    },
+    {
+      "group": "learned diffusion-world-model claims",
+      "claim": "A small conditional denoising MLP trains and produces sampled future trajectories for the toy world.",
+      "status": "SUPPORTED",
+      "evidence": "results/models/learned_diffusion_world_model.pt and results/tables/learned_metrics.csv"
+    },
+    {
+      "group": "multimodal/mode-collapse claims",
+      "claim": "Mode-collapsed and hidden-mode generators expose selected-tail rank distortion and diversity diagnostics.",
+      "status": "SUPPORTED",
+      "evidence": "controlled rows for mode_collapsed and figure3_tail_diagnostics.png"
+    },
+    {
+      "group": "denoising-budget claims",
+      "claim": "Selection budget N and denoising budget K are separated in a CPU-controlled grid.",
+      "status": "SUPPORTED",
+      "evidence": "results/tables/denoising_grid.csv and figure4_denoising_vs_selection.png"
+    },
+    {
+      "group": "repair claims",
+      "claim": "Calibration-, uncertainty-, and consistency-aware scoring are evaluated as controlled selected-tail repair, not universal fixes.",
+      "status": "SUPPORTED",
+      "evidence": "repair rows in results/tables/main_metrics.csv and figure2_repair_comparison.png"
+    },
+    {
+      "group": "optional benchmark claims",
+      "claim": "External robotics or benchmark validation is implemented.",
+      "status": "UNSUPPORTED",
+      "evidence": "intentionally out of scope for v1"
+    },
+    {
+      "group": "unsupported future robotics claims",
+      "claim": "The project solves robot planning or validates on real robots.",
+      "status": "UNSUPPORTED",
+      "evidence": "blocked by README, docs/claims.md, and docs/final_audit.md"
+    },
+    {
+      "group": "forbidden overclaims",
+      "claim": "Best-of-N always helps; more samples always hurt; calibration always fixes the issue; diffusion likelihood equals real utility.",
+      "status": "UNSUPPORTED",
+      "evidence": "blocked claim boundaries in docs/claims.md"
+    },
+    {
+      "group": "forbidden overclaims",
+      "claim": "This is just a renamed WAM project.",
+      "status": "UNSUPPORTED",
+      "evidence": "docs/differentiation_from_best_of_n_wam.md and diffusion-world-specific experiments"
+    }
+  ]
+}

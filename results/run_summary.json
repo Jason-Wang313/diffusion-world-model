@@ -1,0 +1,38 @@
+{
+  "mode": "full",
+  "elapsed_seconds": 449.9488909000029,
+  "settings": {
+    "seeds": [
+      0,
+      1,
+      2,
+      3
+    ],
+    "n_conditions": 24,
+    "train_samples": 256,
+    "train_epochs": 5,
+    "law_trials": 25000,
+    "learned_steps": 8
+  },
+  "training_losses": [
+    0.2921424061059952,
+    0.2631629966199398,
+    0.2300674095749855,
+    0.19193872809410095,
+    0.15001708641648293
+  ],
+  "figures": [
+    "figures\\figure1_tail_hallucination.png",
+    "figures\\figure2_repair_comparison.png",
+    "figures\\figure3_tail_diagnostics.png",
+    "figures\\figure4_denoising_vs_selection.png",
+    "figures\\figure5_exact_law_validation.png"
+  ],
+  "tables": [
+    "results/tables/main_metrics.csv",
+    "results/tables/seed_metrics.csv",
+    "results/tables/learned_metrics.csv",
+    "results/tables/denoising_grid.csv",
+    "results/tables/exact_law_validation.csv"
+  ]
+}

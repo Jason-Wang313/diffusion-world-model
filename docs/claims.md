@@ -1,0 +1,25 @@
+# Claim Ledger Boundaries
+
+Generated claim status lives in `results/claims_status.md` and `results/claims_status.json`. Each claim is one of `SUPPORTED`, `PARTIAL`, or `UNSUPPORTED`.
+
+## Supported Or Partial Claim Families
+
+- The finite tie-aware Best-of-N law is implemented for binary and real-valued utilities.
+- Monte Carlo validates the exact law on finite tied pools.
+- Controlled toy worlds show selected-tail hallucination for diffusion-like future generators.
+- The small learned denoising MLP trains and samples future trajectories in the toy world.
+- Mode collapse, plausibility bias, and denoising-budget effects are measured with diagnostics.
+- Repair is scoped to calibrated, uncertainty-aware, and consistency-aware scoring in the controlled setting.
+
+## Explicitly Unsupported Claims
+
+| Claim | Status | Boundary |
+|---|---:|---|
+| We solve robot planning. | UNSUPPORTED | No robot planner is implemented. |
+| We validate on real robots. | UNSUPPORTED | No real-robot data or hardware experiment is present. |
+| Best-of-N always helps. | UNSUPPORTED | The repo shows conditional behavior. |
+| More samples always hurt. | UNSUPPORTED | The failure is selected-tail dependent, not universal. |
+| Calibration always fixes the issue. | UNSUPPORTED | Repair is empirical and scoped. |
+| Diffusion likelihood equals real utility. | UNSUPPORTED | The repo separates imagined score from real utility. |
+| This is not toy evidence unless real benchmarks are implemented. | UNSUPPORTED | It is toy evidence with explicit boundaries. |
+| This is just a renamed WAM project. | UNSUPPORTED | The artifact studies diffusion-generated future tails. |
