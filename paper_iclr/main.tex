@@ -1,0 +1,307 @@
+\documentclass{article}
+
+\usepackage{iclr2026_conference,times}
+\usepackage{amsmath,amssymb,amsthm}
+\usepackage{booktabs}
+\usepackage{graphicx}
+\usepackage{microtype}
+\usepackage{url}
+\usepackage[hidelinks]{hyperref}
+
+\graphicspath{{../figures/}}
+
+\hypersetup{
+  pdftitle={When More Dreaming Hurts: Selected-Tail Hallucination in Diffusion World Models},
+  pdfauthor={Anonymous}
+}
+
+\newtheorem{proposition}{Proposition}
+\DeclareMathOperator*{\argmax}{arg\,max}
+\newcommand{\E}{\mathbb{E}}
+\newcommand{\Prb}{\mathbb{P}}
+\newcommand{\future}{\hat{x}_{1:H}}
+\newcommand{\score}{S}
+\newcommand{\utility}{R}
+
+\title{\centering When More Dreaming Hurts:\\Selected-Tail Hallucination\\in Diffusion World Models}
+
+\author{}
+
+\begin{document}
+
+\maketitle
+
+\begin{abstract}
+Diffusion world models can generate many plausible futures before a planner chooses the best-looking one. This selection loop changes the relevant error mode: the important question is not only whether average generated futures are accurate, but whether the upper tail selected by an imagined score remains calibrated to real utility. We study this failure mode as \emph{selected-tail hallucination}. In a controlled diagnostic package, a generated future $\future$, an imagined score $\score$, and externally measured real utility $\utility$ are kept separate. An exact finite, tie-aware Best-of-$N$ law is used as a measurement tool, not as the paper's claimed novelty. Controlled diffusion-like generators and a small learned denoising ensemble both show that increasing $N$ can raise the selected imagined score while degrading selected real utility. At $N=64$, the controlled optimistic raw scorer selects imagined score $1.375$ but real utility $0.533$; the learned raw scorer selects imagined score $1.028$ but real utility $-0.797$ and triggers a \texttt{block\_high\_n} gate. A pilot-label calibrated lower-confidence selector closes $90.9\%$ of the controlled raw-to-oracle gap and $92.0\%$ of the learned gap on held-out diagnostic conditions. The resulting claim is deliberately scoped: pilot calibration can repair selected-tail hallucination in support-covered controlled regimes, while robotics and broad benchmark validation remain future work.
+\end{abstract}
+
+\section{Introduction}
+
+Model-based agents increasingly plan by imagining futures. A world model predicts a future trajectory conditioned on the current state, candidate actions, and a goal; a planner assigns an internal score; and the action associated with the best imagined future is deployed. Diffusion models make this loop especially tempting because they can produce diverse, plausible futures \citep{ho2020ddpm,song2021score,janner2022diffuser,ajay2023decisiondiffuser,chi2023diffusionpolicy}. A natural systems knob is then to draw more futures and keep the best.
+
+This paper asks what that knob actually optimizes. If the selected sample is chosen by an imagined score, more samples improve the selected imagined score almost by construction. Real utility can move differently. The selected candidate comes from the upper tail of the score distribution, exactly where plausibility, model likelihood, and real-world value can be least aligned. We call this \emph{selected-tail hallucination}: a Best-of-$N$ planner finds futures that look increasingly good to the model while their measured real outcomes stagnate or deteriorate.
+
+The study is intentionally controlled. We do not claim real-robot validation, broad robotics benchmark coverage, or a universal repair. Instead, we build a reproducible controlled-v1 diagnostic package that separates four objects: generated future, imagined score, selected action or candidate, and real utility measured by replay in a hidden-mode toy environment. This separation makes it possible to diagnose a failure that average prediction error can miss.
+
+Our contributions are:
+\begin{itemize}
+  \item A first-principles setup for Best-of-$N$ selection in diffusion world models that distinguishes $\future$, $\score$, and $\utility$.
+  \item A finite, tie-aware Best-of-$N$ selection law used to measure how score-utility rank distortion turns into expected selected utility. The law is elementary and diagnostic; the contribution is the diffusion-world evidence package and repair study around it.
+  \item Controlled and learned diffusion-world diagnostics showing selected-tail hallucination. In the controlled optimistic row at $N=64$, selected imagined score is $1.375$ while selected real utility is $0.533$, with high-$N$ regret $0.133$ and an imagined-real tail gap $0.641$. In the learned raw row at $N=64$, selected real utility falls to $-0.797$, the tail gap is $1.429$, and the deployment gate blocks high-$N$ use.
+  \item A pilot-label calibrated lower-confidence repair that closes most of the raw-to-oracle gap on held-out support-covered conditions: $90.9\%$ in the controlled optimistic repair split and $92.0\%$ in the learned repair split.
+\end{itemize}
+
+\section{Setup: Best-of-N Selection in Diffusion World Models}
+
+At decision time the agent observes state $s_t$ or observation $o_t$, a candidate action sequence $a_{t:t+H}$, and a goal $g$. A diffusion world model defines a conditional future distribution
+\begin{equation}
+  p_\theta(\future \mid s_t, a_{t:t+H}, g).
+\end{equation}
+For each draw, the planner or model emits an imagined score
+\begin{equation}
+  \score_i = \score(\hat{x}^{(i)}_{1:H}, a_i, g),
+\end{equation}
+where larger is better. If an energy convention is used, $\score=-E$. The environment separately provides real utility $\utility_i$ by evaluating the selected action sequence under the real hidden mode. Raw Best-of-$N$ selection is
+\begin{equation}
+  i^\star = \argmax_{1 \leq i \leq N} \score_i,\qquad
+  \utility_{\mathrm{sel}} = \utility_{i^\star}.
+\end{equation}
+The diagnostic point is that $\score_i$ is not treated as ground truth. It may encode predicted progress, plausibility, likelihood, learned value, or a proxy reward, while $\utility_i$ is the measured outcome of the selected candidate.
+
+We track selected imagined score, selected real utility, oracle real utility, high-$N$ regret, imagined-real tail gap, upper-tail rank correlation, sample diversity, and deployment gate decisions. The tail gap compares high imagined scores with the corresponding real utilities; high-$N$ regret measures the loss in selected real utility at large $N$ relative to a lower-$N$ choice. A high-$N$ planner is blocked when the diagnostics show tail rank failure or unmitigated selected-tail miscalibration.
+
+\section{Exact Finite Selection Law}
+
+The following law is used to validate the selection measurement in finite empirical pools. It is not diffusion-specific.
+
+\begin{proposition}[Finite tie-aware Best-of-$N$ law]
+Let a finite candidate pool be sampled iid uniformly with replacement. Partition candidates into tied score groups $G_1,\ldots,G_L$, ordered from highest score to lowest. Let $p_\ell$ be the pool probability mass of group $G_\ell$, $u_\ell$ be its mean real utility, and $H_\ell=\sum_{m<\ell}p_m$ be the mass of all higher-score groups. If Best-of-$N$ selects uniformly among sampled candidates tied for the top observed score, then
+\begin{equation}
+  \E[\utility_{\mathrm{sel}}]
+  =
+  \sum_{\ell=1}^{L}
+  \left[
+    (1-H_\ell)^N - (1-H_\ell-p_\ell)^N
+  \right]u_\ell .
+  \label{eq:finite-law}
+\end{equation}
+\end{proposition}
+
+The event that $G_\ell$ is the top observed score group occurs when no sample lands in a higher group and at least one sample lands in $G_\ell$. Conditional on this event, exchangeability and uniform tie handling make the expected selected utility equal to the group mean $u_\ell$. Appendix~\ref{app:proof} gives the full derivation and edge cases. The implementation validates Eq.~\ref{eq:finite-law} against $25{,}000$ Monte Carlo trials; the maximum absolute error is $0.0028$.
+
+\section{Controlled Diffusion-World Diagnostics}
+
+The controlled environment is designed to expose selected-tail error without claiming benchmark realism. It contains hidden slip, blockage, and fragility modes. Analytic diffusion-like generators sample future trajectories under good, optimistic, mode-collapsed, and plausibility-biased conditions. A learned component trains a three-member, CPU-first conditional denoising MLP ensemble on toy trajectories and evaluates held-out future sampling.
+
+\begin{figure}[t]
+  \centering
+  \includegraphics[width=0.92\linewidth]{figure1_tail_hallucination.png}
+  \caption{Selected-tail hallucination in the controlled diagnostic. As $N$ increases, the raw optimistic scorer can raise selected imagined score while selected real utility peaks earlier and then drops.}
+  \label{fig:tail}
+\end{figure}
+
+Table~\ref{tab:n64} summarizes the strongest verified $N=64$ failures. In the controlled optimistic row, the selected imagined score reaches $1.375$ while selected real utility is $0.533$ and oracle real utility is $1.010$. In the learned raw row, the selected real utility is negative even though the selected imagined score rises with $N$. The learned model is not presented as a robotics model; it is a small learned diffusion-style future sampler used to test whether the diagnostic pipeline survives moving beyond analytic generators.
+
+\begin{table}[t]
+\centering
+\caption{Verified $N=64$ selected-tail failures.}
+\label{tab:n64}
+\resizebox{\linewidth}{!}{
+\begin{tabular}{lcccccc}
+\toprule
+Setting & Selected imagined & Selected real & Oracle real & Tail gap & High-$N$ regret & Gate \\
+\midrule
+Controlled optimistic raw & 1.375 & 0.533 & 1.010 & 0.641 & 0.133 & \texttt{collect\_pilot\_labels} \\
+Learned raw & 1.028 & -0.797 & 1.020 & 1.429 & 0.939 & \texttt{block\_high\_n} \\
+\bottomrule
+\end{tabular}}
+\end{table}
+
+The learned ensemble also reports ordinary held-out prediction diagnostics: test future-trajectory MSE $0.159$, final-state error $0.766$, held-out utility rank correlation $-0.388$, selected-tail calibration error $1.233$, and sample diversity $0.116$. These numbers are useful precisely because they disagree with the selection objective: acceptable-looking learned sampling does not guarantee that the top selected generated future is useful.
+
+\section{Pilot-Calibrated Lower-Confidence Repair}
+
+The repair spends a small pilot budget on real labels before deployment. Pilot candidates are drawn from the selected tail, high-uncertainty candidates, low-consistency candidates, disagreement or risk candidates, and a random slice. A ridge residual model predicts $\utility-\score$ from generated-future and action diagnostics. A held-out calibration split estimates a one-sided residual quantile. The deployment score is a lower confidence estimate of real utility:
+\begin{equation}
+\begin{split}
+  \widehat{\utility}_{\mathrm{lcb}}
+  =
+  \score
+  + \widehat{\mathrm{residual}}
+  - q_{\mathrm{conf}}
+  - \lambda_{\mathrm{unc}}\widehat{\sigma}
+  - \lambda_{\mathrm{tail}}\phi(N).
+\end{split}
+\label{eq:lcb}
+\end{equation}
+The selector maximizes Eq.~\ref{eq:lcb}, not the raw imagined score. Gap closure is computed as
+\begin{equation}
+  \mathrm{gap\ closed}
+  =
+  \frac{
+    \utility_{\mathrm{fixed}}-\utility_{\mathrm{raw}}
+  }{
+    \max(\utility_{\mathrm{oracle}}-\utility_{\mathrm{raw}},\epsilon)
+  }.
+\end{equation}
+
+\begin{figure}[t]
+  \centering
+  \includegraphics[width=0.90\linewidth]{figure6_pilot_repair_gap_closure.png}
+  \caption{Pilot-label calibrated lower-confidence repair closes most of the raw-to-oracle gap in held-out controlled and learned diagnostic splits.}
+  \label{fig:repair}
+\end{figure}
+
+The repair claim is empirical and scoped. It relies on support-covered regimes where generated-future features, uncertainty, consistency, or supplied upper-bound hazard features identify the selected-tail error. If two candidates are observationally identical but have different hidden real utilities, no feature-only selector can always choose the better candidate.
+
+\section{Experiments}
+
+The full run uses four seeds, $24$ toy conditions per seed, $N\in\{1,2,4,8,16,32,64\}$, and $25{,}000$ Monte Carlo trials for the exact-law check. It produces CSV claim tables, nine figures, and a generated claim ledger. The learned ensemble uses three denoisers trained for five epochs; the primary member's loss decreases from $0.294$ to $0.141$.
+
+\paragraph{Controlled hallucination.}
+Figure~\ref{fig:tail} shows the central effect. In the optimistic generator, selected imagined score rises from $0.582$ at $N=1$ to $1.375$ at $N=64$, while selected real utility rises and then falls to $0.533$. Mode-collapsed and plausibility-biased rows expose related tail rank distortion and diversity diagnostics.
+
+\paragraph{Denoising budget versus selection budget.}
+The diagnostic separates reverse-process quality from selection pressure by varying denoising steps $K$ and selection budget $N$. This prevents a misleading interpretation in which high-$N$ failure is attributed only to poor denoising. Better denoising can improve samples while Best-of-$N$ still amplifies residual score-utility distortion.
+
+\paragraph{Learned diffusion-world model.}
+The learned raw scorer is a stronger stress test. At $N=64$, selected imagined score is $1.028$, selected real utility is $-0.797$, high-$N$ regret is $0.939$, upper-tail rank correlation is $-0.420$, and the gate emits \texttt{block\_high\_n} with reason \texttt{tail\_rank\_failure}. A calibrated learned scorer improves selected real utility but still indicates that unguarded high-$N$ deployment is unsafe.
+
+\paragraph{Pilot repair.}
+Table~\ref{tab:repair} reports held-out repair rows at $N=64$. The controlled pilot split differs from the full-run raw diagnostic in Table~\ref{tab:n64}; it is the held-out split used to evaluate the repair model. With $32$ pilot labels, the controlled LCB repair closes $90.9\%$ of the raw-to-oracle gap. The learned repair closes $92.0\%$ at budget $32$. The near-oracle hidden-hazard and many-label rows each close $100\%$ of the controlled gap, but they are explicitly non-deployable upper-bound ablations.
+
+\begin{table}[t]
+\centering
+\caption{Held-out $N=64$ pilot repair gap closure.}
+\label{tab:repair}
+\resizebox{\linewidth}{!}{
+\begin{tabular}{lrrrrc}
+\toprule
+Setting & Pilot budget & Raw real & Fixed real & Oracle real & Gap closed \\
+\midrule
+Controlled LCB & 0 & 0.846 & 0.960 & 1.116 & 42.2\% \\
+Controlled LCB & 8 & 0.846 & 1.091 & 1.116 & 90.5\% \\
+Controlled LCB & 32 & 0.846 & 1.092 & 1.116 & 90.9\% \\
+Controlled LCB & 128 & 0.846 & 1.091 & 1.116 & 90.5\% \\
+Learned LCB & 32 & -1.117 & 0.816 & 0.984 & 92.0\% \\
+Controlled oracle features & 128 & 0.846 & 1.116 & 1.116 & 100.0\% \\
+\bottomrule
+\end{tabular}}
+\end{table}
+
+\section{Related Work}
+
+\paragraph{World models and model-based control.}
+World-model agents learn predictive latent dynamics and plan or learn policies inside imagined rollouts \citep{ha2018worldmodels,hafner2019planet,hafner2020dreamer,hafner2023dreamerv3}. Probabilistic model-based RL highlights compounding model error, epistemic uncertainty, and short-horizon policy improvement \citep{chua2018pets,janner2019mbpo}. Our focus is narrower: even when generated futures look plausible, selecting the top imagined-score tail can create a different deployment error than average rollout prediction.
+
+\paragraph{Diffusion for decision making.}
+Diffusion models have been used for trajectory generation, planning, and visuomotor action policies \citep{janner2022diffuser,ajay2023decisiondiffuser,chi2023diffusionpolicy}. Those methods motivate sampling multiple candidates and selecting or conditioning on desirable behavior. This paper isolates the world-model case where the sampled object is a future-world trajectory and the chosen future's score is compared with independently measured real utility.
+
+\paragraph{Selection, calibration, and uncertainty.}
+Cross-entropy and sampling-based planners optimize by repeatedly selecting high-scoring candidates \citep{rubinstein1999crossentropy,williams2017mppi}. Best-of-$N$ reranking and verifier-style selection also appear in language and reasoning systems \citep{cobbe2021verifiers,lightman2024letsverify}. Calibration and uncertainty methods offer tools for making scores more reliable \citep{lakshminarayanan2017deepensembles,guo2017calibration,vovk2005algorithmic,angelopoulos2021gentle}. We use these ideas in a diagnostic lower-confidence repair, but we do not claim calibration universally fixes unidentifiable hidden modes.
+
+\section{Limitations}
+
+This is controlled toy-scale evidence. The learned diffusion world model is intentionally small and CPU-first. The environment is diagnostic rather than realistic, and no real-robot or broad benchmark validation is implemented. The repair result is not a theorem of universal recovery; it is an empirical result in support-covered regimes where the available diagnostics expose the selected-tail error. Near-oracle ablations use hidden hazard features or many labels and are labeled non-deployable.
+
+The theorem is a finite-pool measurement tool. It does not by itself explain diffusion hallucination, guarantee monotonic improvement, or produce a repair. Its value here is that it makes selection pressure auditable once a pool of score-utility pairs has been measured.
+
+\section{Conclusion}
+
+Drawing more futures is not automatically safer. In diffusion world models, Best-of-$N$ selection can move the deployed candidate into a miscalibrated upper tail where imagined score and real utility diverge. The controlled-v1 evidence package shows this failure under analytic diffusion-like generators and a learned denoising ensemble, validates the finite selection measurement, and demonstrates that pilot-label calibrated lower-confidence selection can close most of the oracle gap when the error mode is observable. The next step is not to claim robot planning success, but to test the same selected-tail diagnostics under larger, independently measured deployment settings.
+
+\label{sec:main_end}
+
+\bibliographystyle{iclr2026_conference}
+\bibliography{references}
+
+\clearpage
+\appendix
+
+\section{Finite Selection Law Details}
+\label{app:proof}
+
+Let the finite pool contain $M$ candidates. Each draw is iid uniform over the pool. Sort score-tied groups $G_1,\ldots,G_L$ from highest to lowest score. Define $p_\ell=|G_\ell|/M$, $u_\ell=|G_\ell|^{-1}\sum_{j\in G_\ell}\utility_j$, and $H_\ell=\sum_{m<\ell}p_m$.
+
+The event that $G_\ell$ is the highest observed score group has two parts: no draw lands in a higher group and at least one draw lands in $G_\ell$. The probability of no higher draw is $(1-H_\ell)^N$. The probability of no higher draw and no draw in $G_\ell$ is $(1-H_\ell-p_\ell)^N$. Subtracting gives
+\begin{equation}
+  \Prb(\mathrm{top}=G_\ell)
+  =
+  (1-H_\ell)^N-(1-H_\ell-p_\ell)^N.
+\end{equation}
+Given $\mathrm{top}=G_\ell$, every sampled top-score position is a draw from $G_\ell$. Uniform tie breaking over sampled top positions and exchangeability imply that the selected candidate has expected utility $u_\ell$. Summing over mutually exclusive top groups gives Eq.~\ref{eq:finite-law}.
+
+Several edge cases are immediate. If all utilities are constant, $\E[\utility_{\mathrm{sel}}]$ is constant for all $N$. If score order is perfectly aligned with real utility, expected selected utility is nondecreasing in $N$. If score order is anti-aligned with real utility, expected selected utility can decrease with $N$. Binary success is a special case where $u_\ell$ is the empirical success rate in a tied score group.
+
+\begin{figure}[h]
+  \centering
+  \includegraphics[width=0.78\linewidth]{figure5_exact_law_validation.png}
+  \caption{Finite tie-aware law versus Monte Carlo selection. The maximum absolute validation error is $0.0028$.}
+  \label{fig:law}
+\end{figure}
+
+\section{Toy World and Learned Denoiser Details}
+
+The toy world separates generated futures from real hidden outcomes. Hidden modes include slip, blockage, and fragility. The same action sequence can therefore generate a plausible-looking future while failing under the real hidden mode. Analytic diffusion-like generators instantiate several controlled conditions: a good generator, an optimistic generator that overstates goal progress, a mode-collapsed generator, and a plausibility-biased generator.
+
+The learned model is a three-member conditional denoising MLP ensemble trained on toy trajectories. It is CPU-first and intentionally small. The primary member's denoising loss decreases from $0.294$ to $0.141$ over five epochs; the three final losses are $0.141$, $0.152$, and $0.140$. Test future-trajectory MSE is $0.159$ and final-state error is $0.766$. On held-out selection conditions, utility rank correlation is $-0.388$, selected-tail calibration error is $1.233$, sample diversity is $0.116$, and mean ensemble disagreement is $0.065$.
+
+\begin{figure}[h]
+  \centering
+  \includegraphics[width=0.82\linewidth]{figure4_denoising_vs_selection.png}
+  \caption{Denoising budget $K$ and selection budget $N$ are varied separately.}
+  \label{fig:denoising}
+\end{figure}
+
+\section{Additional Diagnostics}
+
+The main paper highlights the optimistic and learned raw failures. The full artifact also includes diagnostics for mode collapse, plausibility bias, calibration reliability, adaptive gates, and near-oracle upper-bound ablations.
+
+\begin{figure}[h]
+  \centering
+  \includegraphics[width=0.82\linewidth]{figure2_repair_comparison.png}
+  \caption{Raw scoring compared with calibrated, uncertainty-aware, consistency-aware, random, and oracle scoring.}
+  \label{fig:repair-comparison}
+\end{figure}
+
+\begin{figure}[h]
+  \centering
+  \includegraphics[width=0.82\linewidth]{figure3_tail_diagnostics.png}
+  \caption{Selected-tail diagnostics, including imagined-real tail gap and upper-tail rank correlation.}
+  \label{fig:tail-diagnostics}
+\end{figure}
+
+\begin{figure}[h]
+  \centering
+  \includegraphics[width=0.82\linewidth]{figure7_adaptive_n_gate.png}
+  \caption{Adaptive Best-of-$N$ gate decisions with explicit reason codes.}
+  \label{fig:gate}
+\end{figure}
+
+\section{Repair and Calibration Details}
+
+Pilot candidates are allocated across selected-tail samples, high-uncertainty samples, low-consistency samples, disagreement or risk samples, and random samples. The residual model is a ridge regressor for $\utility-\score$. A calibration split estimates a one-sided residual quantile for the lower-confidence bound in Eq.~\ref{eq:lcb}.
+
+For the controlled repair at pilot budgets $8$, $32$, and $128$, the conformal quantiles are $1.348$, $1.352$, and $0.509$, respectively. Held-out lower-bound coverage is $0.988$, $0.964$, and $0.868$. For the learned repair at budgets $8$ and $32$, the conformal quantiles are $0.364$ and $0.545$, and held-out lower-bound coverage is $0.546$ and $0.786$. These diagnostics reinforce the scoped claim: the repair is useful when the pilot labels reveal the selected-tail error, but coverage and deployment gates still matter.
+
+\begin{figure}[h]
+  \centering
+  \includegraphics[width=0.82\linewidth]{figure8_calibration_reliability.png}
+  \caption{Residual lower-bound calibration diagnostics.}
+  \label{fig:calibration}
+\end{figure}
+
+\begin{figure}[h]
+  \centering
+  \includegraphics[width=0.82\linewidth]{figure9_near_oracle_ablation.png}
+  \caption{Near-oracle controlled upper-bound ablations. Hidden hazard features and many-label settings are non-deployable.}
+  \label{fig:near-oracle}
+\end{figure}
+
+\section{Claim Boundary and Reproducibility Notes}
+
+Supported claims are limited to the controlled-v1 evidence package: finite-law validation, controlled selected-tail hallucination, learned toy denoiser diagnostics, denoising-versus-selection separation, adaptive gates, and pilot-label lower-confidence repair in held-out support-covered regimes. Unsupported claims include real-robot validation, broad robotics benchmark coverage, universal Best-of-$N$ repair, guaranteed $100\%$ oracle recovery without additional information, and treating diffusion likelihood or imagined score as real utility.
+
+The final verified run used four seeds, $24$ toy conditions per seed, $N\in\{1,2,4,8,16,32,64\}$, $256$ training samples, five training epochs, $25{,}000$ law-validation trials, and eight learned denoising steps. The reproducibility package contains source code, CSV tables, JSON claim status, model artifacts, and figures. The command audit reports passing smoke, full, claim-audit, and test runs.
+
+\end{document}
