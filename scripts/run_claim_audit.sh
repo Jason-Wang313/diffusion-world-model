@@ -19,4 +19,4 @@ if [[ -z "$PYTHON_BIN" ]]; then
     PYTHON_BIN="python3"
   fi
 fi
-"$PYTHON_BIN" -m dwm_best_of_n.audit
+"$PYTHON_BIN" -m dwm_tail_audit.audit

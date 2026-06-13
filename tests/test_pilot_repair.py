@@ -1,7 +1,7 @@
 import numpy as np
 
-from dwm_best_of_n.evaluation import GATE_DECISIONS, GATE_REASONS, make_analytic_batches
-from dwm_best_of_n.pilot_repair import (
+from dwm_tail_audit.evaluation import GATE_DECISIONS, GATE_REASONS, make_analytic_batches
+from dwm_tail_audit.pilot_repair import (
     condition_splits,
     conformal_lower_quantile,
     fit_pilot_repair,

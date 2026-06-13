@@ -2,8 +2,8 @@ from pathlib import Path
 
 import numpy as np
 
-from dwm_best_of_n.diffusion_world_model import DiffusionConfig, DiffusionWorldModel
-from dwm_best_of_n.toy_world import ToyWorld, ToyWorldConfig
+from dwm_tail_audit.diffusion_world_model import DiffusionConfig, DiffusionWorldModel
+from dwm_tail_audit.toy_world import ToyWorld, ToyWorldConfig
 
 
 def test_diffusion_world_model_training_and_sampling_shape(tmp_path: Path):

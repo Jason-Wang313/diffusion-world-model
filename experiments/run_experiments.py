@@ -8,12 +8,12 @@ from pathlib import Path
 import numpy as np
 import pandas as pd
 
-from dwm_best_of_n.analytic_generators import (
+from dwm_tail_audit.analytic_generators import (
     CandidateBatch,
     imagined_utility_from_future,
 )
-from dwm_best_of_n.diffusion_world_model import DiffusionConfig, DiffusionWorldModel
-from dwm_best_of_n.evaluation import (
+from dwm_tail_audit.diffusion_world_model import DiffusionConfig, DiffusionWorldModel
+from dwm_tail_audit.evaluation import (
     N_VALUES,
     aggregate_seed_metrics,
     candidate_diversity,
@@ -22,10 +22,10 @@ from dwm_best_of_n.evaluation import (
     evaluate_denoising_grid,
     make_analytic_batches,
 )
-from dwm_best_of_n.pilot_repair import PILOT_BUDGETS, run_pilot_repair_experiment
-from dwm_best_of_n.plotting import write_all_figures
-from dwm_best_of_n.theory import exact_law_validation_dataframe
-from dwm_best_of_n.toy_world import ToyWorld
+from dwm_tail_audit.pilot_repair import PILOT_BUDGETS, run_pilot_repair_experiment
+from dwm_tail_audit.plotting import write_all_figures
+from dwm_tail_audit.theory import exact_law_validation_dataframe
+from dwm_tail_audit.toy_world import ToyWorld
 
 
 def _mode_settings(mode: str) -> dict:

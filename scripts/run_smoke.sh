@@ -20,4 +20,4 @@ if [[ -z "$PYTHON_BIN" ]]; then
   fi
 fi
 "$PYTHON_BIN" experiments/run_experiments.py --mode smoke
-"$PYTHON_BIN" -m dwm_best_of_n.audit
+"$PYTHON_BIN" -m dwm_tail_audit.audit

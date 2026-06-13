@@ -1,10 +1,10 @@
-# Differentiation From Best-of-N WAM
+# Differentiation From WAM
 
-The shared piece is the abstract finite Best-of-N law: once a finite score/utility pool exists, the expected selected utility under top-score selection can be computed exactly with tie groups.
+The shared piece is the abstract finite top-tail law: once a finite score/utility pool exists, the expected selected utility under top-score selection can be computed exactly with tie groups.
 
 The object of study is different.
 
-| Axis | Best-of-N WAM | This repo |
+| Axis | WAM audit | This repo |
 |---|---|---|
 | Model object | Imagined rollout model | Diffusion world model over future trajectories |
 | Failure mode | Rollout/real dynamics mismatch | Generated future tail hallucination |

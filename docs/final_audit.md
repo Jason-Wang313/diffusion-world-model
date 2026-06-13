@@ -1,15 +1,15 @@
 # Final Audit
 
-Verification date: 2026-06-08.
+Verification date: 2026-06-13.
 
 ## Command Results
 
 | Command | Result | Runtime |
 |---|---:|---:|
-| `bash scripts/run_smoke.sh` | passed | script elapsed 155.30s; observed wall 194.6s |
-| `bash scripts/run_all.sh` | passed | script elapsed 431.33s; observed wall 500.3s |
-| `pytest` | passed, 22 tests | pytest 46.01s; observed wall 59.0s |
-| `bash scripts/run_claim_audit.sh` | passed | observed wall 12.4s |
+| `bash scripts/run_smoke.sh` | passed | script elapsed 100.07s; observed wall 169.2s |
+| `bash scripts/run_all.sh` | passed | script elapsed 326.10s; observed wall 368.9s |
+| `pytest` | passed, 22 tests | pytest 26.95s; observed wall 34.2s |
+| `bash scripts/run_claim_audit.sh` | passed | observed wall 19.0s |
 
 ## Artifact Inventory
 
@@ -22,7 +22,7 @@ Verification date: 2026-06-08.
 
 Full-run controlled optimistic raw scoring at `N=64` has selected imagined score `1.375`, selected real utility `0.533`, high-`N` regret `0.133`, imagined-real tail gap `0.641`, and oracle gap `0.477`. The imagined score rises across `N`, while real utility peaks earlier and then drops.
 
-Under the learned diffusion-world-model raw scorer at `N=64`, selected imagined score is `1.028`, selected real utility is `-0.797`, high-`N` regret is `0.939`, imagined-real tail gap is `1.429`, and the deployment gate is `block_high_n`.
+Under the learned diffusion-world-model raw scorer at `N=64`, selected imagined score is `1.067`, selected real utility is `-0.754`, high-`N` regret is `0.896`, imagined-real tail gap is `1.460`, and the deployment gate is `block_high_n`.
 
 ## Pilot Repair Artifact
 
@@ -35,17 +35,17 @@ The practical held-out controlled pilot repair at `N=64` reports:
 | 32 | 0.846 | 1.092 | 1.116 | 90.9% |
 | 128 | 0.846 | 1.091 | 1.116 | 90.5% |
 
-The learned held-out pilot repair closes `92.0%` of the raw-to-oracle gap at budget `32`. The controlled upper-bound `repair_oracle_features` and `repair_many_pilot_labels` ablations each close `100.0%` of the gap and are explicitly labeled non-deployable.
+The learned held-out pilot repair closes `94.1%` of the raw-to-oracle gap at budget `32`. The controlled upper-bound `repair_oracle_features` and `repair_many_pilot_labels` ablations each close `100.0%` of the gap and are explicitly labeled non-deployable.
 
 ## Learned Generalization Artifact
 
-The learned ensemble uses three CPU-first denoisers. The primary member's training loss decreases from `0.294` to `0.141` over 5 epochs. Held-out generalization rows report test future-trajectory MSE `0.159`, final-state error `0.766`, held-out utility rank correlation `-0.388`, selected-tail calibration error `1.233`, and sample diversity `0.116`.
+The learned ensemble uses three CPU-first denoisers. The primary member's training loss decreases from `0.296` to `0.133` over 5 epochs. Held-out generalization rows report test future-trajectory MSE `0.155`, final-state error `0.731`, held-out utility rank correlation `-0.393`, selected-tail calibration error `1.337`, and sample diversity `0.143`.
 
 ## Claim Boundary
 
 Supported claim: pilot-label calibrated lower-confidence selection substantially reduces selected-tail hallucination and closes most of the oracle gap in controlled support-covered regimes.
 
-Unsupported claims remain blocked: real-robot validation, broad robotics benchmark coverage, universal Best-of-N repair, guaranteed 100% oracle recovery without additional information, and treating diffusion likelihood or imagined score as real utility.
+Unsupported claims remain blocked: real-robot validation, broad robotics benchmark coverage, universal tail-selection repair, guaranteed 100% oracle recovery without additional information, and treating diffusion likelihood or imagined score as real utility.
 
 The impossibility boundary is explicit in `docs/theory.md`: if two candidates have identical observable/generated features but different hidden real utility, feature-only selection cannot always choose the better candidate.
 

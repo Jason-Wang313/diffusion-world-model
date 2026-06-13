@@ -1,4 +1,4 @@
-"""Pilot-label calibrated repair for selected-tail Best-of-N control.
+"""Pilot-label calibrated repair for selected-tail diffusion-world-model control.
 
 The functions in this module intentionally keep the repair small and
 CPU-first: features are deterministic NumPy arrays, the residual model is a

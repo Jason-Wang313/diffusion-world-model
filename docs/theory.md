@@ -8,7 +8,7 @@ At decision time the agent observes state or observation `s_t` / `o_t`, a candid
 p_theta(future | state, action_sequence, goal)
 ```
 
-A generated future is written `hat{x}_{1:H}`. The model or planner assigns an imagined score `S(hat{x}_{1:H}, a_{t:t+H}, g)`. The toy environment separately measures real utility `R` by replaying the selected action sequence under the real hidden mode. Best-of-N selection draws `N` generated futures or future/action candidates and selects:
+A generated future is written `hat{x}_{1:H}`. The model or planner assigns an imagined score `S(hat{x}_{1:H}, a_{t:t+H}, g)`. The toy environment separately measures real utility `R` by replaying the selected action sequence under the real hidden mode. Tail selection draws a budget `N` of generated futures or future/action candidates and selects:
 
 ```text
 i* = argmax_i S_i
@@ -16,7 +16,7 @@ i* = argmax_i S_i
 
 If energy notation is used, the score convention is `S = -E`; larger `S` is always preferred.
 
-## Exact Finite Tie-Aware Best-of-N Law
+## Exact Finite Tie-Aware Top-Tail Law
 
 For a finite empirical pool with scores `S_j` and utilities `R_j`, candidates are sampled iid uniformly. Sort tied score groups from highest to lowest. For score group `g`, let `p_g` be its pool probability, `u_g` its mean utility, and `P_higher(g)` the probability mass of all higher-score groups.
 

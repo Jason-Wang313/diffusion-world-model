@@ -1,4 +1,4 @@
-"""Finite tie-aware Best-of-N laws and diagnostics."""
+"""Finite tie-aware top-tail selection laws and diagnostics."""
 
 from __future__ import annotations
 
@@ -10,7 +10,7 @@ import pandas as pd
 
 
 @dataclass(frozen=True)
-class BestOfNLawResult:
+class TopTailLawResult:
     n: int
     expected_utility: float
     expected_score: float
@@ -38,12 +38,12 @@ def _score_groups(scores: np.ndarray, utilities: np.ndarray) -> list[tuple[float
     return groups
 
 
-def finite_best_of_n_law(
+def finite_top_tail_law(
     scores: Iterable[float],
     utilities: Iterable[float],
     n: int,
-) -> BestOfNLawResult:
-    """Exact expected utility for iid finite-pool Best-of-N with top-score tie handling.
+) -> TopTailLawResult:
+    """Exact expected utility for iid finite-pool top-tail selection with top-score tie handling.
 
     Candidates are sampled iid uniformly from a finite empirical pool. If several sampled
     candidates share the top score, the selected candidate is uniform over that top-score
@@ -76,7 +76,7 @@ def finite_best_of_n_law(
         group_utils.append(mean_utility)
         group_scores.append(score)
 
-    return BestOfNLawResult(
+    return TopTailLawResult(
         n=int(n),
         expected_utility=float(expected_utility),
         expected_score=float(expected_score),
@@ -86,14 +86,14 @@ def finite_best_of_n_law(
     )
 
 
-def finite_best_of_n_curve(
+def finite_top_tail_curve(
     scores: Iterable[float],
     utilities: Iterable[float],
     ns: Iterable[int],
 ) -> pd.DataFrame:
     rows = []
     for n in ns:
-        law = finite_best_of_n_law(scores, utilities, int(n))
+        law = finite_top_tail_law(scores, utilities, int(n))
         rows.append(
             {
                 "N": int(n),
@@ -104,18 +104,18 @@ def finite_best_of_n_curve(
     return pd.DataFrame(rows)
 
 
-def binary_best_of_n_law(scores: Iterable[float], utilities: Iterable[int], n: int) -> BestOfNLawResult:
+def binary_top_tail_law(scores: Iterable[float], utilities: Iterable[int], n: int) -> TopTailLawResult:
     utilities_arr = _as_1d("utilities", utilities)
     if not np.all((utilities_arr == 0.0) | (utilities_arr == 1.0)):
         raise ValueError("binary utilities must be 0/1")
-    return finite_best_of_n_law(scores, utilities_arr, n)
+    return finite_top_tail_law(scores, utilities_arr, n)
 
 
-def real_valued_best_of_n_law(scores: Iterable[float], utilities: Iterable[float], n: int) -> BestOfNLawResult:
-    return finite_best_of_n_law(scores, utilities, n)
+def real_valued_top_tail_law(scores: Iterable[float], utilities: Iterable[float], n: int) -> TopTailLawResult:
+    return finite_top_tail_law(scores, utilities, n)
 
 
-def monte_carlo_best_of_n(
+def monte_carlo_top_tail(
     scores: Iterable[float],
     utilities: Iterable[float],
     n: int,
@@ -229,8 +229,8 @@ def exact_law_validation_dataframe(
     utilities = np.array([0.1, 1.0, 0.4, -0.1, 0.2, 0.0, -0.3], dtype=float)
     rows = []
     for n in ns:
-        law = finite_best_of_n_law(scores, utilities, int(n))
-        mc = monte_carlo_best_of_n(scores, utilities, int(n), trials=trials, seed=seed + int(n))
+        law = finite_top_tail_law(scores, utilities, int(n))
+        mc = monte_carlo_top_tail(scores, utilities, int(n), trials=trials, seed=seed + int(n))
         rows.append(
             {
                 "N": int(n),

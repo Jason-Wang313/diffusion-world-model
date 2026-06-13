@@ -3,9 +3,9 @@ requires = ["setuptools>=68"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "dwm-best-of-n"
+name = "dwm-tail-audit"
 version = "0.1.0"
-description = "Best-of-N inference laws for diffusion world models in controlled toy worlds."
+description = "Selection-budget tail audits for diffusion world models in controlled toy worlds."
 requires-python = ">=3.10"
 dependencies = [
   "numpy",

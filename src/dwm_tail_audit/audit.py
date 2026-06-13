@@ -75,7 +75,7 @@ def build_claims(repo_root: str | Path = ".") -> list[dict[str, str]]:
     claims = [
         {
             "group": "theorem claims",
-            "claim": "Finite tie-aware Best-of-N expected selected utility is implemented and Monte Carlo validated.",
+            "claim": "Finite tie-aware top-tail expected selected utility is implemented and Monte Carlo validated.",
             "status": "SUPPORTED" if validation_ok else "PARTIAL",
             "evidence": "results/tables/exact_law_validation.csv and figure5_exact_law_validation.png",
         },
@@ -117,7 +117,7 @@ def build_claims(repo_root: str | Path = ".") -> list[dict[str, str]]:
         },
         {
             "group": "repair claims",
-            "claim": "Adaptive Best-of-N deployment emits one gate decision with an explicit reason code.",
+            "claim": "Adaptive selection-budget deployment emits one gate decision with an explicit reason code.",
             "status": "SUPPORTED" if adaptive_ok else "PARTIAL",
             "evidence": "results/tables/adaptive_n_metrics.csv and figure7_adaptive_n_gate.png",
         },
@@ -153,13 +153,13 @@ def build_claims(repo_root: str | Path = ".") -> list[dict[str, str]]:
         },
         {
             "group": "forbidden overclaims",
-            "claim": "Best-of-N always helps; more samples always hurt; calibration always fixes the issue; diffusion likelihood equals real utility.",
+            "claim": "Tail selection always helps; more samples always hurt; calibration always fixes the issue; diffusion likelihood equals real utility.",
             "status": "UNSUPPORTED",
             "evidence": "blocked claim boundaries in docs/claims.md",
         },
         {
             "group": "forbidden overclaims",
-            "claim": "Universal 100% Best-of-N repair is guaranteed without additional information.",
+            "claim": "Universal 100% tail-selection repair is guaranteed without additional information.",
             "status": "UNSUPPORTED",
             "evidence": "blocked by hidden-mode impossibility note in docs/theory.md",
         },
@@ -167,7 +167,7 @@ def build_claims(repo_root: str | Path = ".") -> list[dict[str, str]]:
             "group": "forbidden overclaims",
             "claim": "This is just a renamed WAM project.",
             "status": "UNSUPPORTED",
-            "evidence": "docs/differentiation_from_best_of_n_wam.md and diffusion-world-specific experiments",
+            "evidence": "docs/differentiation_from_wam.md and diffusion-world-specific experiments",
         },
     ]
     return claims

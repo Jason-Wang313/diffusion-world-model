@@ -1,4 +1,4 @@
-"""Evaluation harness and metrics for Best-of-N diffusion-world-model selection."""
+"""Evaluation harness and metrics for diffusion-world-model tail selection."""
 
 from __future__ import annotations
 
@@ -11,7 +11,7 @@ import pandas as pd
 
 from .analytic_generators import CandidateBatch, generate_analytic_batch
 from .scorers import score_candidates
-from .theory import finite_best_of_n_law, tail_diagnostics
+from .theory import finite_top_tail_law, tail_diagnostics
 from .toy_world import ToyWorld
 
 
@@ -106,7 +106,7 @@ def evaluate_batches(
             diag = tail_diagnostics(scores[: int(n)], batch.real_utility[: int(n)], quantile=0.75)
             tail_corr.append(diag["upper_tail_rank_correlation"])
             tail_gaps.append(diag["imagined_real_tail_gap"])
-            law = finite_best_of_n_law(scores, batch.real_utility, int(n))
+            law = finite_top_tail_law(scores, batch.real_utility, int(n))
             exact_errors.append(abs(law.expected_utility - float(batch.real_utility[idx])))
         rows.append(
             {

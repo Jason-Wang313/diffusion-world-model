@@ -4,7 +4,7 @@ from pathlib import Path
 
 import pandas as pd
 
-from dwm_best_of_n.audit import STATUSES, write_claim_audit
+from dwm_tail_audit.audit import STATUSES, write_claim_audit
 
 
 ROOT = Path(__file__).resolve().parents[1]

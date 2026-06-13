@@ -10,7 +10,7 @@ def test_readme_and_paper_do_not_make_robotics_or_universal_repair_claims():
     forbidden_assertions = [
         "we solve robot planning",
         "we validate on real robots",
-        "best-of-n always helps",
+        "tail selection always helps",
         "more samples always hurt",
         "calibration always fixes",
         "diffusion likelihood equals real utility",
@@ -23,7 +23,7 @@ def test_required_docs_exist_and_mark_scope_boundaries():
     for rel in [
         "docs/theory.md",
         "docs/claims.md",
-        "docs/differentiation_from_best_of_n_wam.md",
+        "docs/differentiation_from_wam.md",
         "docs/differentiation_from_prior_projects.md",
         "docs/reviewer_attacks.md",
         "docs/final_audit.md",

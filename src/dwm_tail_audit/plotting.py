@@ -129,7 +129,7 @@ def figure5_exact_law_validation(validation: pd.DataFrame, figures_dir: str | Pa
     ax.set_xscale("log", base=2)
     ax.set_xlabel("N generated futures")
     ax.set_ylabel("Expected selected utility")
-    ax.set_title("Tie-aware finite Best-of-N law validation")
+    ax.set_title("Tie-aware finite top-tail law validation")
     ax.grid(True, alpha=0.25)
     ax.legend(frameon=False)
     path = Path(figures_dir) / "figure5_exact_law_validation.png"
@@ -187,7 +187,7 @@ def figure7_adaptive_n_gate(adaptive: pd.DataFrame, figures_dir: str | Path) -> 
     ax.set_xscale("log", base=2)
     ax.set_xlabel("N generated futures")
     ax.set_ylabel("Selected lower-confidence estimate")
-    ax.set_title("Adaptive Best-of-N gate")
+    ax.set_title("Adaptive selection-budget gate")
     ax.grid(True, alpha=0.25)
     ax.legend(frameon=False, ncol=3)
     path = Path(figures_dir) / "figure7_adaptive_n_gate.png"

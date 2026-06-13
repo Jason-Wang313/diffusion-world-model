@@ -1,4 +1,4 @@
-"""A low-dimensional hidden-friction world for controlled Best-of-N tests."""
+"""A low-dimensional hidden-friction world for controlled tail-selection tests."""
 
 from __future__ import annotations
 

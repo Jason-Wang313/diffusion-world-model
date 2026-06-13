@@ -1,4 +1,4 @@
-from dwm_best_of_n.evaluation import (
+from dwm_tail_audit.evaluation import (
     GATE_DECISIONS,
     GATE_REASONS,
     N_VALUES,
