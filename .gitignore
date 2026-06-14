@@ -16,3 +16,4 @@ dist/
 *.log
 *.out
 *.synctex.gz
+paper_iclr/main.pdf

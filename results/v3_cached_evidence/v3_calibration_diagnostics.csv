@@ -1,0 +1,10 @@
+repair_model,pilot_budget,confidence,conformal_quantile,calibration_mae,eval_mae,eval_lower_bound_coverage,train_condition_count,calibration_condition_count,eval_condition_count,train_label_count,calibration_label_count,experiment,generator,controlled_upper_bound,deployable_repair,calibration_candidate_count,eval_candidate_count
+pilot_lcb,0,0.9,0.0,,,,48,24,24,0,0,controlled_pilot_repair,optimistic,False,True,,
+pilot_lcb,8,0.9,1.3481262712321485,1.1160509073695453,1.1490641684512184,0.9876302083333334,48,24,24,6,2,controlled_pilot_repair,optimistic,False,True,1536.0,1536.0
+pilot_lcb,32,0.9,1.3521911322549118,0.8773373064857694,0.7933029979331215,0.9635416666666666,48,24,24,22,10,controlled_pilot_repair,optimistic,False,True,1536.0,1536.0
+pilot_lcb,128,0.9,0.5089532764390704,0.3846082539649278,0.3710624941232467,0.8684895833333334,48,24,24,90,38,controlled_pilot_repair,optimistic,False,True,1536.0,1536.0
+pilot_lcb,0,0.9,0.0,,,,24,12,12,0,0,learned_pilot_repair,learned_diffusion_world_model,False,True,,
+pilot_lcb,8,0.9,0.0,0.9074104273613752,0.9719211751842776,0.7421875,24,12,12,6,2,learned_pilot_repair,learned_diffusion_world_model,False,True,768.0,768.0
+pilot_lcb,32,0.9,0.3292910613863666,0.480602386262412,0.6094273766898194,0.7421875,24,12,12,22,10,learned_pilot_repair,learned_diffusion_world_model,False,True,768.0,768.0
+repair_many_pilot_labels,512,0.9,0.3872431140754462,0.2333472773536331,0.2463012465711196,0.9772135416666666,48,24,24,358,154,near_oracle_ablation,optimistic,True,False,1536.0,1536.0
+repair_oracle_features,128,0.9,0.4764249487432681,0.383812951048404,0.3571573710179274,0.876953125,48,24,24,90,38,near_oracle_ablation,optimistic,True,False,1536.0,1536.0
