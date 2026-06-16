@@ -12,6 +12,7 @@ dependencies = [
   "pandas",
   "matplotlib",
   "torch",
+  "gymnasium",
 ]
 
 [tool.setuptools.packages.find]

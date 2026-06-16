@@ -6,7 +6,8 @@
 \usepackage{graphicx}
 \usepackage{microtype}
 \usepackage{url}
-\usepackage[hidelinks]{hyperref}
+\usepackage{xcolor}
+\usepackage[colorlinks=true,citecolor=green!45!black,linkcolor=blue!55!black,urlcolor=blue!55!black]{hyperref}
 
 \graphicspath{{../figures/}}
 
@@ -22,7 +23,7 @@
 \newcommand{\future}{\hat{x}_{1:H}}
 \newcommand{\score}{S}
 \newcommand{\utility}{R}
-\input{v3_results_macros.tex}
+\input{v4_results_macros.tex}
 
 \title{\centering When More Dreaming Hurts:\\Selected-Tail Hallucination\\in Diffusion World Models}
 
@@ -33,7 +34,7 @@
 \maketitle
 
 \begin{abstract}
-Diffusion world models can generate many plausible futures before a planner chooses the highest-scored one. This selection loop changes the relevant error mode: the important question is not only whether average generated futures are accurate, but whether the upper tail selected by an imagined score remains calibrated to real utility. We study this failure mode as \emph{selected-tail hallucination}. In a controlled diagnostic package, a generated future $\future$, an imagined score $\score$, and externally measured real utility $\utility$ are kept separate. An exact finite, tie-aware top-tail law is used as a measurement tool, not as the paper's claimed novelty. Controlled diffusion-like generators and a small learned denoising ensemble both show that increasing selection budget $N$ can raise the selected imagined score while degrading selected real utility. At $N=64$, the controlled optimistic raw scorer selects imagined score $1.375$ but real utility $0.533$; the learned raw scorer selects imagined score $1.067$ but real utility $-0.754$ and triggers a \texttt{block\_high\_n} gate. A pilot-label calibrated lower-confidence selector closes $90.9\%$ of the controlled raw-to-oracle gap and $94.1\%$ of the learned gap on held-out diagnostic conditions. The resulting claim is deliberately scoped: pilot calibration can repair selected-tail hallucination in support-covered controlled regimes, while robotics and broad benchmark validation remain future work.
+Diffusion world models can generate many plausible futures before a planner chooses the highest-scored one. This selection loop changes the relevant error mode: the important question is not only whether average generated futures are accurate, but whether the upper tail selected by an imagined score remains calibrated to real utility. We study this failure mode as \emph{selected-tail hallucination}. Generated future $\future$, imagined score $\score$, selected candidate, and externally measured real utility $\utility$ are kept separate. An exact finite, tie-aware top-tail law is used as an accounting check, not as the paper's novelty claim. Controlled diffusion-like generators and a small learned denoising ensemble show that increasing selection budget $N$ can raise selected imagined score while degrading selected real utility: at $N=64$, the controlled optimistic scorer selects imagined score \VFourDWMOptimisticImagined{} but real utility \VFourDWMOptimisticReal{}, and the learned raw scorer selects real utility \VFourDWMLearnedRawReal{} with a \texttt{block\_high\_n} gate. A pilot-label lower-confidence selector closes \VFourDWMControlledGapBThirtyTwo{} of the controlled oracle gap and \VFourDWMLearnedGapBThirtyTwo{} of the learned gap. V4 adds a RAM-light standard benchmark replay-pool audit on \VFourDWMBenchmarkEnvs{} Gymnasium Classic Control tasks, \VFourDWMBenchmarkEvalPools{} held-out pools, and \VFourDWMBenchmarkCandidateRows{} candidate futures: \VFourDWMBenchmarkPositiveCIRows{} learned-score/LCB rows beat random with positive lower confidence bounds, while anti-score and weak-task rows remain explicit stress tests. The claim is scoped to selected-tail auditing and support-covered repair, not real-robot validation or SOTA control.
 \end{abstract}
 
 \section{Introduction}
@@ -42,14 +43,15 @@ Model-based agents increasingly plan by imagining futures. A world model predict
 
 This paper asks what that knob actually optimizes. If the selected sample is chosen by an imagined score, more samples improve the selected imagined score almost by construction. Real utility can move differently. The selected candidate comes from the upper tail of the score distribution, exactly where plausibility, model likelihood, and real-world value can be least aligned. We call this \emph{selected-tail hallucination}: a tail-selection planner finds futures that look increasingly good to the model while their measured real outcomes stagnate or deteriorate.
 
-The study is intentionally controlled. We do not claim real-robot validation, broad robotics benchmark coverage, or a universal repair. Instead, we build a reproducible controlled-v1 diagnostic package that separates four objects: generated future, imagined score, selected action or candidate, and real utility measured by replay in a hidden-mode toy environment. This separation makes it possible to diagnose a failure that average prediction error can miss.
+The study is intentionally scoped but no longer toy-only. We do not claim real-robot validation, broad robotics benchmark coverage, SOTA controller performance, or a universal repair. Instead, we build a reproducible diagnostic package that separates four objects: generated future, imagined score, selected action or candidate, and real utility measured by replay. The controlled hidden-mode environment supplies mechanism isolation; a standard Gymnasium Classic Control replay-pool audit supplies external benchmark pressure without hiding weak rows. This separation makes it possible to diagnose a failure that average prediction error can miss.
 
 Our contributions are:
 \begin{itemize}
   \item A first-principles setup for selection-budget tail audits in diffusion world models that distinguishes $\future$, $\score$, and $\utility$.
   \item A finite, tie-aware top-tail law used to measure how score-utility rank distortion turns into expected selected utility. The law is elementary and diagnostic; the contribution is the diffusion-world evidence package and repair study around it.
-  \item Controlled and learned diffusion-world diagnostics showing selected-tail hallucination. In the controlled optimistic row at $N=64$, selected imagined score is $1.375$ while selected real utility is $0.533$, with high-$N$ regret $0.133$ and an imagined-real tail gap $0.641$. In the learned raw row at $N=64$, selected real utility falls to $-0.754$, the tail gap is $1.460$, and the deployment gate blocks high-$N$ use.
-  \item A pilot-label calibrated lower-confidence repair that closes most of the raw-to-oracle gap on held-out support-covered conditions: $90.9\%$ in the controlled optimistic repair split and $94.1\%$ in the learned repair split.
+  \item Controlled and learned diffusion-world diagnostics showing selected-tail hallucination. In the controlled optimistic row at $N=64$, selected imagined score is \VFourDWMOptimisticImagined{} while selected real utility is \VFourDWMOptimisticReal{}, with high-$N$ regret \VFourDWMOptimisticRegret{} and an imagined-real tail gap \VFourDWMOptimisticTailGap{}. In the learned raw row at $N=64$, selected real utility falls to \VFourDWMLearnedRawReal{}, the tail gap is \VFourDWMLearnedRawTailGap{}, and the deployment gate blocks high-$N$ use.
+  \item A pilot-label calibrated lower-confidence repair that closes most of the raw-to-oracle gap on held-out support-covered conditions: \VFourDWMControlledGapBThirtyTwo{} in the controlled optimistic repair split and \VFourDWMLearnedGapBThirtyTwo{} in the learned repair split.
+  \item A standard benchmark replay-pool audit over Gymnasium Classic Control tasks with random, learned-score, lower-confidence, anti-score, and oracle baselines; this is candidate-level evidence for the audit mechanism, not a controller leaderboard claim.
 \end{itemize}
 
 \section{Setup: Tail Selection in Diffusion World Models}
@@ -112,13 +114,13 @@ Table~\ref{tab:n64} summarizes the strongest verified $N=64$ failures. In the co
 \toprule
 Setting & Selected imagined & Selected real & Oracle real & Tail gap & High-$N$ regret & Gate \\
 \midrule
-Controlled optimistic raw & 1.375 & 0.533 & 1.010 & 0.641 & 0.133 & \texttt{collect\_pilot\_labels} \\
-Learned raw & 1.067 & -0.754 & 1.020 & 1.460 & 0.896 & \texttt{block\_high\_n} \\
+Controlled optimistic raw & \VFourDWMOptimisticImagined{} & \VFourDWMOptimisticReal{} & 1.010 & \VFourDWMOptimisticTailGap{} & \VFourDWMOptimisticRegret{} & \texttt{collect\_pilot\_labels} \\
+Learned raw & \VFourDWMLearnedRawImagined{} & \VFourDWMLearnedRawReal{} & 1.020 & \VFourDWMLearnedRawTailGap{} & \VFourDWMLearnedRawRegret{} & \texttt{block\_high\_n} \\
 \bottomrule
 \end{tabular}}
 \end{table}
 
-The learned ensemble also reports ordinary held-out prediction diagnostics: test future-trajectory MSE $0.155$, final-state error $0.731$, held-out utility rank correlation $-0.393$, selected-tail calibration error $1.337$, and sample diversity $0.143$. These numbers are useful precisely because they disagree with the selection objective: acceptable-looking learned sampling does not guarantee that the top selected generated future is useful.
+The learned ensemble also reports ordinary held-out prediction diagnostics: test future-trajectory MSE \VFourDWMLearnedTestMSE{}, final-state error \VFourDWMLearnedFinalError{}, held-out utility rank correlation \VFourDWMLearnedHeldoutRankCorr{}, selected-tail calibration error \VFourDWMLearnedTailCalibrationError{}, and sample diversity \VFourDWMLearnedHeldoutDiversity{}. These numbers are useful precisely because they disagree with the selection objective: acceptable-looking learned sampling does not guarantee that the top selected generated future is useful.
 
 \section{Pilot-Calibrated Lower-Confidence Repair}
 
@@ -157,7 +159,7 @@ The repair claim is empirical and scoped. It relies on support-covered regimes w
 
 \section{Experiments}
 
-The full run uses four seeds, $24$ toy conditions per seed, $N\in\{1,2,4,8,16,32,64\}$, and $25{,}000$ Monte Carlo trials for the exact-law check. It produces CSV claim tables, nine figures, and a generated claim ledger. The learned ensemble uses three denoisers trained for five epochs; the primary member's loss decreases from $0.296$ to $0.133$.
+The full controlled run uses four seeds, $24$ toy conditions per seed, $N\in\{1,2,4,8,16,32,64\}$, and $25{,}000$ Monte Carlo trials for the exact-law check. It produces CSV claim tables, nine base figures, and a generated claim ledger. The learned ensemble uses three denoisers trained for five epochs; the primary member's loss decreases from \VFourDWMTrainingLossFirst{} to \VFourDWMTrainingLossLast{}.
 
 \paragraph{Controlled hallucination.}
 Figure~\ref{fig:tail} shows the central effect. In the optimistic generator, selected imagined score rises from $0.582$ at $N=1$ to $1.375$ at $N=64$, while selected real utility rises and then falls to $0.533$. Mode-collapsed and plausibility-biased rows expose related tail rank distortion and diversity diagnostics.
@@ -166,10 +168,13 @@ Figure~\ref{fig:tail} shows the central effect. In the optimistic generator, sel
 The diagnostic separates reverse-process quality from selection pressure by varying denoising steps $K$ and selection budget $N$. This prevents a misleading interpretation in which high-$N$ failure is attributed only to poor denoising. Better denoising can improve samples while tail selection still amplifies residual score-utility distortion.
 
 \paragraph{Learned diffusion-world model.}
-The learned raw scorer is a stronger stress test. At $N=64$, selected imagined score is $1.067$, selected real utility is $-0.754$, high-$N$ regret is $0.896$, upper-tail rank correlation is $-0.344$, and the gate emits \texttt{block\_high\_n} with reason \texttt{tail\_rank\_failure}. A calibrated learned scorer improves selected real utility but still indicates that unguarded high-$N$ deployment is unsafe.
+The learned raw scorer is a stronger stress test. At $N=64$, selected imagined score is \VFourDWMLearnedRawImagined{}, selected real utility is \VFourDWMLearnedRawReal{}, high-$N$ regret is \VFourDWMLearnedRawRegret{}, held-out rank correlation is \VFourDWMLearnedHeldoutRankCorr{}, and the gate emits \texttt{block\_high\_n} with reason \texttt{tail\_rank\_failure}. A calibrated learned scorer improves selected real utility but still indicates that unguarded high-$N$ deployment is unsafe.
 
 \paragraph{Pilot repair.}
-Table~\ref{tab:repair} reports held-out repair rows at $N=64$. The controlled pilot split differs from the full-run raw diagnostic in Table~\ref{tab:n64}; it is the held-out split used to evaluate the repair model. With $32$ pilot labels, the controlled LCB repair closes $90.9\%$ of the raw-to-oracle gap. The learned repair closes $94.1\%$ at budget $32$. The near-oracle hidden-hazard and many-label rows each close $100\%$ of the controlled gap, but they are explicitly non-deployable upper-bound ablations.
+Table~\ref{tab:repair} reports held-out repair rows at $N=64$. The controlled pilot split differs from the full-run raw diagnostic in Table~\ref{tab:n64}; it is the held-out split used to evaluate the repair model. With $32$ pilot labels, the controlled LCB repair closes \VFourDWMControlledGapBThirtyTwo{} of the raw-to-oracle gap. The learned repair closes \VFourDWMLearnedGapBThirtyTwo{} at budget $32$. The near-oracle hidden-hazard and many-label rows each close $100\%$ of the controlled gap, but they are explicitly non-deployable upper-bound ablations.
+
+\paragraph{Standard benchmark replay pools.}
+V4 adds a candidate-level benchmark audit on Gymnasium Classic Control environments \citep{towers2024gymnasium}. For CartPole-v1, Pendulum-v1, and MountainCarContinuous-v0, the script freezes open-loop candidate pools, trains a small ridge ensemble on train pools, calibrates uncertainty on held-out calibration pools, and evaluates random, learned-score, lower-confidence, anti-score, and oracle baselines on held-out pools. This is not a controller leaderboard: it asks whether a score-tail audit can explain which selected candidates have real measured return in standard simulators. The benchmark layer contains \VFourDWMBenchmarkEvalPools{} held-out pools and \VFourDWMBenchmarkCandidateRows{} candidates; \VFourDWMBenchmarkPositiveCIRows{} learned-score/LCB rows beat random with positive lower confidence bounds, and the anti-score control is negative in \VFourDWMBenchmarkAntiNegativeRows{} stress row.
 
 \begin{table}[t]
 \centering
@@ -190,107 +195,146 @@ Controlled oracle features & 128 & 0.846 & 1.116 & 1.116 & 100.0\% \\
 \end{tabular}}
 \end{table}
 
-\section{V3 Evidence Audit}
-\label{sec:v3-audit}
+\section{V4 Evidence Audit}
+\label{sec:v4-audit}
 
-The v3 revision adds a generated evidence layer over the committed full run
-rather than changing the claim tier. The script
-\texttt{experiments/v3\_cached\_evidence.py} reads the result tables, claim
+The v4 revision adds a frozen evidence layer over the committed full run and a
+new standard benchmark replay-pool audit. The script
+\texttt{experiments/v4\_frozen\_evidence.py} reads the result tables, claim
 ledger, run summary, learned-model diagnostics, and artifact tree; writes
-compact CSV summaries under \texttt{results/v3\_cached\_evidence}; creates six
-new figures under \texttt{figures/v3}; and exports the macros used in this
-section. This is deliberately RAM-light: it aggregates existing CPU artifacts
-instead of retraining the diffusion ensemble or loading any robotics runtime.
+compact CSV summaries under \texttt{results/v4\_frozen\_evidence}; creates
+eight figures under \texttt{figures/v4}; runs the lightweight Gymnasium
+benchmark replay-pool audit; and exports the macros used in this section. This
+is deliberately RAM-light: it aggregates existing CPU artifacts and executes
+small Classic Control replay pools instead of retraining the diffusion
+ensemble or loading any robotics runtime.
 
 \begin{figure}[t]
   \centering
-  \includegraphics[width=0.88\linewidth]{v3/v3_tail_failure_landscape.pdf}
-  \caption{V3 selected-tail failure landscape at $N=64$. The raw learned
-  diffusion-world scorer has tail gap \VThreeDWMLearnedRawTailGap{} and
-  selected real utility \VThreeDWMLearnedRawReal{}, while the controlled
-  optimistic raw scorer has tail gap \VThreeDWMOptimisticTailGap{}.}
-  \label{fig:v3-failure-landscape}
+  \includegraphics[width=0.88\linewidth]{v4/v4_tail_failure_landscape.pdf}
+  \caption{V4 selected-tail failure landscape at $N=64$. The raw learned
+  diffusion-world scorer has tail gap \VFourDWMLearnedRawTailGap{} and
+  selected real utility \VFourDWMLearnedRawReal{}, while the controlled
+  optimistic raw scorer has tail gap \VFourDWMOptimisticTailGap{}.}
+  \label{fig:v4-failure-landscape}
 \end{figure}
 
 \begin{figure}[t]
   \centering
-  \includegraphics[width=0.88\linewidth]{v3/v3_repair_budget_curve.pdf}
-  \caption{V3 pilot-repair budget sensitivity. The deployable controlled LCB
-  repair closes \VThreeDWMControlledGapBThirtyTwo{} of the raw-to-oracle gap at
+  \includegraphics[width=0.88\linewidth]{v4/v4_repair_budget_curve.pdf}
+  \caption{V4 pilot-repair budget sensitivity. The deployable controlled LCB
+  repair closes \VFourDWMControlledGapBThirtyTwo{} of the raw-to-oracle gap at
   budget $32$, while the learned LCB repair closes
-  \VThreeDWMLearnedGapBThirtyTwo{} at budget $32$. Dashed curves are
+  \VFourDWMLearnedGapBThirtyTwo{} at budget $32$. Dashed curves are
   non-deployable controlled upper bounds.}
-  \label{fig:v3-repair-budget}
+  \label{fig:v4-repair-budget}
 \end{figure}
 
-Table~\ref{tab:v3-evidence-matrix} summarizes the audit surface. The core
+\begin{figure}[t]
+  \centering
+  \includegraphics[width=0.90\linewidth]{v4/v4_gymnasium_benchmark_baselines.pdf}
+  \caption{V4 standard benchmark replay-pool baselines on Gymnasium Classic
+  Control. Random, learned-score, lower-confidence, and oracle rows are
+  candidate-pool selection baselines, not trained controller leaderboard
+  entries.}
+  \label{fig:v4-benchmark-baselines}
+\end{figure}
+
+\begin{figure}[t]
+  \centering
+  \includegraphics[width=0.90\linewidth]{v4/v4_gymnasium_benchmark_deltas.pdf}
+  \caption{V4 benchmark deltas against random selection at $N=64$. Positive
+  lower confidence bounds are promoted only where present; weak Pendulum rows
+  and anti-score controls remain visible as stress tests.}
+  \label{fig:v4-benchmark-deltas}
+\end{figure}
+
+Table~\ref{tab:v4-evidence-matrix} summarizes the audit surface. The core
 claim is stronger than an 11-page draft because the paper now exposes the
 negative controls and scope boundaries that make the result attackable. The
-full run has \VThreeDWMSeedRows{} seed-level rows, \VThreeDWMDenoisingRows{}
-denoising-grid rows, \VThreeDWMPilotRows{} repair-budget rows, and
-\VThreeDWMCalibrationRows{} calibration rows. The claim ledger contains
-\VThreeDWMSupportedClaims{} supported claims, \VThreeDWMPartialClaims{} partial
-claims, and \VThreeDWMUnsupportedBoundaryClaims{} unsupported boundary claims.
+full controlled run has \VFourDWMSeedRows{} seed-level rows, \VFourDWMDenoisingRows{}
+denoising-grid rows, \VFourDWMPilotRows{} repair-budget rows, and
+\VFourDWMCalibrationRows{} calibration rows. The benchmark audit has
+\VFourDWMBenchmarkEvalPools{} held-out pools and
+\VFourDWMBenchmarkCandidateRows{} candidate rows. The claim ledger contains
+\VFourDWMSupportedClaims{} supported claims, \VFourDWMPartialClaims{} partial
+claims, and \VFourDWMUnsupportedBoundaryClaims{} unsupported boundary claims.
 Those unsupported entries are not failures of the paper; they are explicit
 blocks on robotics, universal repair, and duplicate-wrapper overclaims.
 
 \begin{table}[t]
 \centering
 \small
-\caption{V3 evidence matrix. Each row names the promoted evidence and its
+\caption{V4 evidence matrix. Each row names the promoted evidence and its
 claim boundary.}
-\label{tab:v3-evidence-matrix}
+\label{tab:v4-evidence-matrix}
 \begin{tabular}{p{0.22\linewidth}p{0.30\linewidth}p{0.34\linewidth}}
 \toprule
 Evidence family & Promoted fact & Boundary \\
 \midrule
 Finite law &
-Max Monte Carlo error \VThreeDWMExactLawMaxError{} over
-\VThreeDWMLawTrials{} trials. &
+Max Monte Carlo error \VFourDWMExactLawMaxError{} over
+\VFourDWMLawTrials{} trials. &
 Measurement tool only; not claimed as the novel diffusion contribution. \\
 Controlled tails &
 Optimistic raw $N=64$ selects imagined score
-\VThreeDWMOptimisticImagined{} but real utility \VThreeDWMOptimisticReal{}. &
+\VFourDWMOptimisticImagined{} but real utility \VFourDWMOptimisticReal{}. &
 Controlled diagnostic world, not robotics benchmark evidence. \\
 Learned denoiser &
-Raw learned $N=64$ real utility \VThreeDWMLearnedRawReal{} with
-high-$N$ regret \VThreeDWMLearnedRawRegret{}. &
+Raw learned $N=64$ real utility \VFourDWMLearnedRawReal{} with
+high-$N$ regret \VFourDWMLearnedRawRegret{}. &
 Small CPU denoising ensemble, not a deployed robot policy. \\
 Repair &
-Controlled budget-32 gap closure \VThreeDWMControlledGapBThirtyTwo{};
-learned budget-32 closure \VThreeDWMLearnedGapBThirtyTwo{}. &
+Controlled budget-32 gap closure \VFourDWMControlledGapBThirtyTwo{};
+learned budget-32 closure \VFourDWMLearnedGapBThirtyTwo{}. &
 Support-covered pilot labels; no universal hidden-mode recovery. \\
 Calibration &
 Held-out selected-tail calibration error
-\VThreeDWMLearnedTailCalibrationError{} and rank correlation
-\VThreeDWMLearnedHeldoutRankCorr{}. &
+\VFourDWMLearnedTailCalibrationError{} and rank correlation
+\VFourDWMLearnedHeldoutRankCorr{}. &
 Diagnostics drive gates; lower bounds are not safety certification. \\
+Benchmark replay &
+\VFourDWMBenchmarkEnvs{} Gymnasium tasks,
+\VFourDWMBenchmarkPositiveCIRows{} positive learned/LCB CI rows, benchmark
+law error \VFourDWMBenchmarkLawMaxError{}. &
+Candidate-pool replay evidence; not SOTA control, robotics, or policy
+learning validation. \\
 Provenance &
-\VThreeDWMResultTables{} tables, \VThreeDWMArtifactFiles{} audited files, and
-six v3 figures. &
-Artifact breadth supports reproducibility, not new external validation. \\
+\VFourDWMResultTables{} tables, \VFourDWMArtifactFiles{} audited files, and
+eight v4 figures. &
+Artifact breadth supports reproducibility and scoped benchmark auditing. \\
 \bottomrule
 \end{tabular}
 \end{table}
 
-Figure~\ref{fig:v3-failure-landscape} is the paper's sharpest negative
+Figure~\ref{fig:v4-failure-landscape} is the paper's sharpest negative
 evidence. The good raw controlled row reaches selected real utility
-\VThreeDWMGoodRawReal{} at $N=64$, but the optimistic, mode-collapsed, and
+\VFourDWMGoodRawReal{} at $N=64$, but the optimistic, mode-collapsed, and
 plausibility-biased generators have tail gaps
-\VThreeDWMOptimisticTailGap{}, \VThreeDWMModeCollapsedTailGap{}, and
-\VThreeDWMPlausibilityTailGap{}. The learned raw scorer is worse: selected
-imagined score reaches \VThreeDWMLearnedRawImagined{} while selected real
-utility is \VThreeDWMLearnedRawReal{}. The calibrated learned row improves
-selected real utility to \VThreeDWMLearnedCalReal{}, but the gate still asks
+\VFourDWMOptimisticTailGap{}, \VFourDWMModeCollapsedTailGap{}, and
+\VFourDWMPlausibilityTailGap{}. The learned raw scorer is worse: selected
+imagined score reaches \VFourDWMLearnedRawImagined{} while selected real
+utility is \VFourDWMLearnedRawReal{}. The calibrated learned row improves
+selected real utility to \VFourDWMLearnedCalReal{}, but the gate still asks
 for pilot labels rather than allowing unguarded high-$N$ deployment.
 
-Figure~\ref{fig:v3-repair-budget} is the corresponding positive evidence. It
+Figure~\ref{fig:v4-repair-budget} is the corresponding positive evidence. It
 does not say calibration always works. It says that in the controlled and
 learned diagnostic regimes where pilot labels expose the selected-tail error,
 a lower-confidence selector can recover most of the oracle gap. The
 near-oracle curve is intentionally separated because it uses information that
-would not be available in deployment. V3 therefore makes the repaired claim
+would not be available in deployment. V4 therefore makes the repaired claim
 stronger by making the unrepaired and non-deployable cases more visible.
+
+Figures~\ref{fig:v4-benchmark-baselines} and
+\ref{fig:v4-benchmark-deltas} are the external-pressure check. They show that
+the audit can be applied to standard simulator replay pools with fair baselines:
+random selection, a learned ridge score, a lower-confidence score, an anti-score
+negative control, and an oracle-in-pool upper bound. CartPole and
+MountainCarContinuous produce positive learned/LCB lower confidence bounds over
+random; Pendulum is kept as a weaker row rather than hidden. This is the desired
+claim discipline: benchmark evidence is added, failures are retained, and the
+paper does not inflate replay-pool selection into a solved-control result.
 
 \section{Related Work}
 
@@ -305,13 +349,13 @@ Cross-entropy and sampling-based planners optimize by repeatedly selecting high-
 
 \section{Limitations}
 
-This is controlled toy-scale evidence. The learned diffusion world model is intentionally small and CPU-first. The environment is diagnostic rather than realistic, and no real-robot or broad benchmark validation is implemented. The repair result is not a theorem of universal recovery; it is an empirical result in support-covered regimes where the available diagnostics expose the selected-tail error. Near-oracle ablations use hidden hazard features or many labels and are labeled non-deployable.
+This is controlled and replay-pool evidence, not a claim of solved control. The learned diffusion world model is intentionally small and CPU-first. The Gymnasium results are standard simulator candidate-pool audits with frozen open-loop candidates, not SOTA controller training, robotics validation, or a broad task-family benchmark. The repair result is not a theorem of universal recovery; it is an empirical result in support-covered regimes where the available diagnostics expose the selected-tail error. Near-oracle ablations use hidden hazard features or many labels and are labeled non-deployable.
 
 The theorem is a finite-pool measurement tool. It does not by itself explain diffusion hallucination, guarantee monotonic improvement, or produce a repair. Its value here is that it makes selection pressure auditable once a pool of score-utility pairs has been measured.
 
 \section{Conclusion}
 
-Drawing more futures is not automatically safer. In diffusion world models, tail selection can move the deployed candidate into a miscalibrated upper tail where imagined score and real utility diverge. The controlled-v1 evidence package shows this failure under analytic diffusion-like generators and a learned denoising ensemble, validates the finite selection measurement, and demonstrates that pilot-label calibrated lower-confidence selection can close most of the oracle gap when the error mode is observable. The next step is not to claim robot planning success, but to test the same selected-tail diagnostics under larger, independently measured deployment settings.
+Drawing more futures is not automatically safer. In diffusion world models, tail selection can move the deployed candidate into a miscalibrated upper tail where imagined score and real utility diverge. The v4 evidence package shows this failure under analytic diffusion-like generators and a learned denoising ensemble, validates the finite selection measurement, adds standard Gymnasium replay-pool baselines and stress tests, and demonstrates that pilot-label calibrated lower-confidence selection can close most of the oracle gap when the error mode is observable. The next step is not to claim robot planning success, but to test the same selected-tail diagnostics under larger, independently measured deployment settings.
 
 \label{sec:main_end}
 
@@ -336,7 +380,7 @@ Given $\mathrm{top}=G_\ell$, every sampled top-score position is a draw from $G_
 
 Several edge cases are immediate. If all utilities are constant, $\E[\utility_{\mathrm{sel}}]$ is constant for all $N$. If score order is perfectly aligned with real utility, expected selected utility is nondecreasing in $N$. If score order is anti-aligned with real utility, expected selected utility can decrease with $N$. Binary success is a special case where $u_\ell$ is the empirical success rate in a tied score group.
 
-\begin{figure}[h]
+\begin{figure}[htbp]
   \centering
   \includegraphics[width=0.78\linewidth]{figure5_exact_law_validation.png}
   \caption{Finite tie-aware law versus Monte Carlo selection. The maximum absolute validation error is $0.0028$.}
@@ -347,9 +391,9 @@ Several edge cases are immediate. If all utilities are constant, $\E[\utility_{\
 
 The toy world separates generated futures from real hidden outcomes. Hidden modes include slip, blockage, and fragility. The same action sequence can therefore generate a plausible-looking future while failing under the real hidden mode. Analytic diffusion-like generators instantiate several controlled conditions: a good generator, an optimistic generator that overstates goal progress, a mode-collapsed generator, and a plausibility-biased generator.
 
-The learned model is a three-member conditional denoising MLP ensemble trained on toy trajectories. It is CPU-first and intentionally small. The primary member's denoising loss decreases from $0.296$ to $0.133$ over five epochs; the three final losses are $0.133$, $0.152$, and $0.140$. Test future-trajectory MSE is $0.155$ and final-state error is $0.731$. On held-out selection conditions, utility rank correlation is $-0.393$, selected-tail calibration error is $1.337$, sample diversity is $0.143$, and mean ensemble disagreement is $0.080$.
+The learned model is a three-member conditional denoising MLP ensemble trained on toy trajectories. It is CPU-first and intentionally small. The primary member's denoising loss decreases from \VFourDWMTrainingLossFirst{} to \VFourDWMTrainingLossLast{} over five epochs. Test future-trajectory MSE is \VFourDWMLearnedTestMSE{} and final-state error is \VFourDWMLearnedFinalError{}. On held-out selection conditions, utility rank correlation is \VFourDWMLearnedHeldoutRankCorr{}, selected-tail calibration error is \VFourDWMLearnedTailCalibrationError{}, and sample diversity is \VFourDWMLearnedHeldoutDiversity{}.
 
-\begin{figure}[h]
+\begin{figure}[htbp]
   \centering
   \includegraphics[width=0.82\linewidth]{figure4_denoising_vs_selection.png}
   \caption{Denoising budget $K$ and selection budget $N$ are varied separately.}
@@ -360,21 +404,21 @@ The learned model is a three-member conditional denoising MLP ensemble trained o
 
 The main paper highlights the optimistic and learned raw failures. The full artifact also includes diagnostics for mode collapse, plausibility bias, calibration reliability, adaptive gates, and near-oracle upper-bound ablations.
 
-\begin{figure}[h]
+\begin{figure}[htbp]
   \centering
   \includegraphics[width=0.82\linewidth]{figure2_repair_comparison.png}
   \caption{Raw scoring compared with calibrated, uncertainty-aware, consistency-aware, random, and oracle scoring.}
   \label{fig:repair-comparison}
 \end{figure}
 
-\begin{figure}[h]
+\begin{figure}[htbp]
   \centering
   \includegraphics[width=0.82\linewidth]{figure3_tail_diagnostics.png}
   \caption{Selected-tail diagnostics, including imagined-real tail gap and upper-tail rank correlation.}
   \label{fig:tail-diagnostics}
 \end{figure}
 
-\begin{figure}[h]
+\begin{figure}[htbp]
   \centering
   \includegraphics[width=0.82\linewidth]{figure7_adaptive_n_gate.png}
   \caption{Adaptive selection-budget gate decisions with explicit reason codes.}
@@ -387,14 +431,14 @@ Pilot candidates are allocated across selected-tail samples, high-uncertainty sa
 
 For the controlled repair at pilot budgets $8$, $32$, and $128$, the conformal quantiles are $1.348$, $1.352$, and $0.509$, respectively. Held-out lower-bound coverage is $0.988$, $0.964$, and $0.868$. For the learned repair at budgets $8$ and $32$, the conformal quantiles are $0.364$ and $0.545$, and held-out lower-bound coverage is $0.546$ and $0.786$. These diagnostics reinforce the scoped claim: the repair is useful when the pilot labels reveal the selected-tail error, but coverage and deployment gates still matter.
 
-\begin{figure}[h]
+\begin{figure}[htbp]
   \centering
   \includegraphics[width=0.82\linewidth]{figure8_calibration_reliability.png}
   \caption{Residual lower-bound calibration diagnostics.}
   \label{fig:calibration}
 \end{figure}
 
-\begin{figure}[h]
+\begin{figure}[htbp]
   \centering
   \includegraphics[width=0.82\linewidth]{figure9_near_oracle_ablation.png}
   \caption{Near-oracle controlled upper-bound ablations. Hidden hazard features and many-label settings are non-deployable.}
@@ -403,46 +447,46 @@ For the controlled repair at pilot budgets $8$, $32$, and $128$, the conformal q
 
 \section{Claim Boundary and Reproducibility Notes}
 
-Supported claims are limited to the controlled-v1 evidence package: finite-law validation, controlled selected-tail hallucination, learned toy denoiser diagnostics, denoising-versus-selection separation, adaptive gates, and pilot-label lower-confidence repair in held-out support-covered regimes. Unsupported claims include real-robot validation, broad robotics benchmark coverage, universal tail-selection repair, guaranteed $100\%$ oracle recovery without additional information, and treating diffusion likelihood or imagined score as real utility.
+Supported claims are limited to the controlled evidence package and the v4 standard benchmark replay-pool audit: finite-law validation, controlled selected-tail hallucination, learned toy denoiser diagnostics, denoising-versus-selection separation, adaptive gates, pilot-label lower-confidence repair in held-out support-covered regimes, and Gymnasium Classic Control candidate-pool baselines. Unsupported claims include real-robot validation, broad robotics benchmark coverage, SOTA controller performance, universal tail-selection repair, guaranteed $100\%$ oracle recovery without additional information, and treating diffusion likelihood or imagined score as real utility.
 
 The final verified run used four seeds, $24$ toy conditions per seed, $N\in\{1,2,4,8,16,32,64\}$, $256$ training samples, five training epochs, $25{,}000$ law-validation trials, and eight learned denoising steps. The reproducibility package contains source code, CSV tables, JSON claim status, model artifacts, and figures. The command audit reports passing smoke, full, claim-audit, and test runs.
 
-\section{V3 Reviewer Audit Appendix}
-\label{app:v3-reviewer-audit}
+\section{V4 Reviewer Audit Appendix}
+\label{app:v4-reviewer-audit}
 
-This appendix records the reviewer-facing audit that was added for the v3
-submission artifact. The goal is not to make the paper look larger by padding
+This appendix records the reviewer-facing audit for the v4 submission artifact.
+The goal is not to make the paper look larger by padding
 the template. The goal is to make the controlled claim harder to misunderstand
 and harder to overstate. Earlier drafts could be attacked as short, toy-only,
-or too close to a generic top-$N$ selection wrapper. V3 accepts the toy-scope
+or too close to a generic top-$N$ selection wrapper. V4 accepts the toy-scope
 attack, separates it from unsupported robotics claims, and then makes the
 controlled evidence package much easier to inspect.
 
 \subsection{Evidence-to-Claim Ledger}
-\label{app:v3-evidence-claim-ledger}
+\label{app:v4-evidence-claim-ledger}
 
 The first audit question is whether each paper claim has the correct evidence
 type. A theorem claim needs a proof and implementation check. A controlled
 diagnostic claim needs generated score/utility pools and seed summaries. A
 repair claim needs held-out pilot labels, calibration diagnostics, and an
 oracle-gap denominator. A boundary claim needs explicit unsupported entries in
-the claim ledger. V3 keeps these evidence types separate.
+the claim ledger. V4 keeps these evidence types separate.
 
 \paragraph{Claim: selected-tail hallucination exists in a diffusion-world
 diagnostic.}
 The evidence is the controlled optimistic, mode-collapsed, plausibility-biased,
 and learned raw rows at $N=64$. The optimistic raw row selects imagined score
-\VThreeDWMOptimisticImagined{} and real utility \VThreeDWMOptimisticReal{}.
-The learned raw row selects imagined score \VThreeDWMLearnedRawImagined{} and
-real utility \VThreeDWMLearnedRawReal{}. The claim is not that all diffusion
+\VFourDWMOptimisticImagined{} and real utility \VFourDWMOptimisticReal{}.
+The learned raw row selects imagined score \VFourDWMLearnedRawImagined{} and
+real utility \VFourDWMLearnedRawReal{}. The claim is not that all diffusion
 world models fail. The claim is that a plausible future generator plus
 score-tail selection can expose a failure mode in which the selected imagined
 future improves while the selected real outcome does not.
 
 \paragraph{Claim: the finite law is an audit instrument.}
 The law is supported by Appendix~\ref{app:proof}, the exact-law validation
-table, and max absolute validation error \VThreeDWMExactLawMaxError{} over
-\VThreeDWMLawTrials{} trials. The paper does not sell this law as a new
+table, and max absolute validation error \VFourDWMExactLawMaxError{} over
+\VFourDWMLawTrials{} trials. The paper does not sell this law as a new
 diffusion theorem. That distinction is essential for novelty. The law is a
 scale, not the object being weighed. The diffusion-world object being weighed
 is the generated future tail selected by an imagined score and evaluated by
@@ -450,7 +494,7 @@ real utility.
 
 \paragraph{Claim: denoising quality and selection pressure are different
 axes.}
-The evidence is the \VThreeDWMDenoisingRows{}-row denoising grid. It varies
+The evidence is the \VFourDWMDenoisingRows{}-row denoising grid. It varies
 reverse-process steps $K$ and selection budget $N$ separately. This guards
 against a reviewer reading the paper as "bad samples cause bad planning." A
 sample can improve in average denoising quality while the selected upper score
@@ -462,8 +506,8 @@ score distribution.
 observable.}
 The evidence is the controlled and learned repair-budget table. At budget
 $32$, the controlled LCB repair closes
-\VThreeDWMControlledGapBThirtyTwo{} of the raw-to-oracle gap and the learned
-repair closes \VThreeDWMLearnedGapBThirtyTwo{}. The boundary is just as
+\VFourDWMControlledGapBThirtyTwo{} of the raw-to-oracle gap and the learned
+repair closes \VFourDWMLearnedGapBThirtyTwo{}. The boundary is just as
 important as the positive number: the repair is not a theorem of universal
 recovery. It needs support coverage, useful observable features, and pilot
 labels that reveal the selected-tail residual. Hidden modes that are
@@ -472,16 +516,16 @@ feature-only repair.
 
 \paragraph{Claim: this is not a robotics validation paper.}
 The evidence is negative and explicit. The claim ledger contains
-\VThreeDWMUnsupportedBoundaryClaims{} unsupported boundary claims, including
+\VFourDWMUnsupportedBoundaryClaims{} unsupported boundary claims, including
 real-robot validation, broad robotics benchmark validation, universal repair,
 and duplicate-wrapper claims. Those entries are deliberately kept in the
 ledger so the abstract and conclusion cannot drift into a broader claim tier.
 
-\begin{table}[h]
+\begin{table}[htbp]
 \centering
 \small
-\caption{V3 claim surfaces and audit tests.}
-\label{tab:v3-claim-surfaces}
+\caption{V4 claim surfaces and audit tests.}
+\label{tab:v4-claim-surfaces}
 \begin{tabular}{p{0.24\linewidth}p{0.30\linewidth}p{0.32\linewidth}}
 \toprule
 Surface & Required evidence & Failure if absent \\
@@ -497,9 +541,9 @@ Scope boundary & Unsupported ledger entries and limitations prose & The paper ri
 \end{table}
 
 \subsection{Seed Robustness and Failure Landscape}
-\label{app:v3-seed-robustness}
+\label{app:v4-seed-robustness}
 
-The controlled full run has \VThreeDWMSeedRows{} seed-level rows. V3 promotes
+The controlled full run has \VFourDWMSeedRows{} seed-level rows. V4 promotes
 this fact because selected-tail failures can otherwise look like a single
 unlucky draw. The seed-robustness plot summarizes the raw $N=64$ selected real
 utility across seeds for each generator family. The intended interpretation is
@@ -508,33 +552,33 @@ small tail gaps; optimistic, mode-collapsed, and plausibility-biased rows
 should expose the score/utility tail distortion; learned rows should show
 whether the same diagnostic survives a small denoising ensemble.
 
-\begin{figure}[h]
+\begin{figure}[htbp]
   \centering
-  \includegraphics[width=0.86\linewidth]{v3/v3_seed_robustness.pdf}
-  \caption{V3 seed robustness at raw $N=64$. Points show mean selected real
+  \includegraphics[width=0.86\linewidth]{v4/v4_seed_robustness.pdf}
+  \caption{V4 seed robustness at raw $N=64$. Points show mean selected real
   utility and bars show min/max over seeds.}
-  \label{fig:v3-seed-robustness}
+  \label{fig:v4-seed-robustness}
 \end{figure}
 
 The seed plot also prevents a quiet overclaim. The paper does not say that
 every seed is equally bad or equally repaired. It says that the diagnostic
 package identifies a class of selected-tail failures and reports their
 variation. A future benchmark paper would need more seeds, larger task
-families, and external environment splits. V3 is stronger because it describes
+families, and external environment splits. V4 is stronger because it describes
 that future requirement instead of compressing seed variation into one
 headline number.
 
-The failure landscape in Figure~\ref{fig:v3-failure-landscape} should be read
-alongside Figure~\ref{fig:v3-seed-robustness}. A positive imagined-real tail
+The failure landscape in Figure~\ref{fig:v4-failure-landscape} should be read
+alongside Figure~\ref{fig:v4-seed-robustness}. A positive imagined-real tail
 gap means the selected imagined futures look better than their real utilities.
-The good generator has selected real utility \VThreeDWMGoodRawReal{} at
+The good generator has selected real utility \VFourDWMGoodRawReal{} at
 $N=64$, while the plausibility-biased generator has tail gap
-\VThreeDWMPlausibilityTailGap{}. That contrast is the paper's core diagnostic
+\VFourDWMPlausibilityTailGap{}. That contrast is the paper's core diagnostic
 story. The failure is not "diffusion is bad." The failure is "selection can
 mine the wrong part of a diffusion-generated future distribution."
 
 \subsection{Denoising Budget Versus Selection Budget}
-\label{app:v3-denoising-selection}
+\label{app:v4-denoising-selection}
 
 Diffusion world models have at least two compute knobs. The first is the
 reverse-process or denoising budget $K$, which affects future sample quality.
@@ -543,12 +587,12 @@ planner-score tail the system searches. Treating these as one knob is a
 reviewer trap. A planner can spend more denoising compute and still be harmed
 by selecting too aggressively from a miscalibrated score tail.
 
-\begin{figure}[h]
+\begin{figure}[htbp]
   \centering
-  \includegraphics[width=0.84\linewidth]{v3/v3_denoising_selection_heatmap.pdf}
-  \caption{V3 denoising-versus-selection heatmap. Rows vary denoising steps
+  \includegraphics[width=0.84\linewidth]{v4/v4_denoising_selection_heatmap.pdf}
+  \caption{V4 denoising-versus-selection heatmap. Rows vary denoising steps
   $K$ and columns vary selection budget $N$; colors show selected real utility.}
-  \label{fig:v3-denoising-heatmap}
+  \label{fig:v4-denoising-heatmap}
 \end{figure}
 
 The heatmap is not a claim that the optimal $K,N$ pair is universal. It is a
@@ -561,17 +605,17 @@ success to improve because denoising improved, even while selected-tail
 calibration got worse. It would also be possible for success to drop because
 $N$ searched too deeply into a harmful score tail.
 
-The correct v3 statement is therefore modest and precise. The current package
-contains a \VThreeDWMDenoisingRows{}-row denoising grid that demonstrates the
+The correct v4 statement is therefore modest and precise. The current package
+contains a \VFourDWMDenoisingRows{}-row denoising grid that demonstrates the
 audit can separate $K$ from $N$ in a controlled setting. A future external
 validation should repeat the same separation with a real diffusion world
 model, fixed task splits, candidate-level labels, and independently measured
 real utility.
 
 \subsection{Repair and Calibration Readiness}
-\label{app:v3-repair-calibration}
+\label{app:v4-repair-calibration}
 
-The repair story is easy to overstate, so v3 gives it a strict reading order.
+The repair story is easy to overstate, so v4 gives it a strict reading order.
 First read the raw failure: at $N=64$, raw optimistic and raw learned scoring
 put attractive imagined futures in the selected tail while real utility is
 lower. Then read the pilot repair: a lower-confidence selector uses a small
@@ -579,20 +623,20 @@ number of real labels to estimate score residuals. Finally read the
 calibration and upper-bound rows: some repairs are deployable, some are
 diagnostic upper bounds, and coverage is not identical across regimes.
 
-\begin{figure}[h]
+\begin{figure}[htbp]
   \centering
-  \includegraphics[width=0.84\linewidth]{v3/v3_calibration_coverage.pdf}
-  \caption{V3 lower-bound coverage by repair setting. The dashed line marks
+  \includegraphics[width=0.84\linewidth]{v4/v4_calibration_coverage.pdf}
+  \caption{V4 lower-bound coverage by repair setting. The dashed line marks
   the nominal $0.9$ confidence level.}
-  \label{fig:v3-calibration-coverage}
+  \label{fig:v4-calibration-coverage}
 \end{figure}
 
-The controlled budget-32 repair closes \VThreeDWMControlledGapBThirtyTwo{} of
+The controlled budget-32 repair closes \VFourDWMControlledGapBThirtyTwo{} of
 the raw-to-oracle gap, and the budget-128 repair closes
-\VThreeDWMControlledGapBOneTwentyEight{}. The fact that these numbers are
+\VFourDWMControlledGapBOneTwentyEight{}. The fact that these numbers are
 close is useful: it suggests the repair is not simply buying performance by
 using a very large pilot set. The learned budget-32 repair closes
-\VThreeDWMLearnedGapBThirtyTwo{}, which is the more important stress case
+\VFourDWMLearnedGapBThirtyTwo{}, which is the more important stress case
 because the score comes from a small learned denoising ensemble rather than a
 pure analytic generator.
 
@@ -600,15 +644,15 @@ The calibration plot keeps the repair honest. A lower-confidence bound is only
 as useful as its coverage under the evaluation distribution. If coverage is
 weak, the deployment gate should ask for more pilot labels or block high $N$.
 If coverage is strong but the score-tail remains anti-correlated with real
-utility, the repair still should not be treated as a safety certificate. V3
+utility, the repair still should not be treated as a safety certificate. V4
 therefore phrases the repair claim as support-covered improvement, not as a
 guarantee that calibration solves hidden-mode ambiguity.
 
 \subsection{Adaptive Gate Semantics}
-\label{app:v3-gate-semantics}
+\label{app:v4-gate-semantics}
 
 The gate labels are part of the method, not a cosmetic annotation. A selected
-tail audit should lead to an operational decision. V3 uses four gate outcomes:
+tail audit should lead to an operational decision. V4 uses four gate outcomes:
 \texttt{allow\_high\_n}, \texttt{stop\_early},
 \texttt{collect\_pilot\_labels}, and \texttt{block\_high\_n}. Each gate has a
 reason code. This makes the paper more useful than a plot that only shows a
@@ -624,15 +668,15 @@ not enough labels to calibrate the lower-confidence selector. Finally,
 already visible.
 
 The learned raw $N=64$ row is the strongest block case. It reports selected
-real utility \VThreeDWMLearnedRawReal{}, tail gap
-\VThreeDWMLearnedRawTailGap{}, and high-$N$ regret
-\VThreeDWMLearnedRawRegret{}. A paper that reported only selected imagined
+real utility \VFourDWMLearnedRawReal{}, tail gap
+\VFourDWMLearnedRawTailGap{}, and high-$N$ regret
+\VFourDWMLearnedRawRegret{}. A paper that reported only selected imagined
 score would miss this failure. A paper that reported only average denoising
 loss would also miss it. The gate turns the audit into a deployment rule:
 under this evidence, unguarded high-$N$ selection should not be used.
 
 \subsection{Non-Duplicate Identity Firewall}
-\label{app:v3-identity-firewall}
+\label{app:v4-identity-firewall}
 
 This manuscript must not read like a duplicate wrapper around a shared
 top-$N$ law. The identity firewall is the diffusion-world object of study:
@@ -659,16 +703,16 @@ tail-audit paper or a language-model reranking paper should immediately see a
 different object, different diagnostics, different figures, and different
 claim boundaries.
 
-\begin{figure}[h]
+\begin{figure}[htbp]
   \centering
-  \includegraphics[width=0.82\linewidth]{v3/v3_claim_artifact_inventory.pdf}
-  \caption{V3 claim and artifact inventory. Unsupported claims are retained as
+  \includegraphics[width=0.82\linewidth]{v4/v4_claim_artifact_inventory.pdf}
+  \caption{V4 claim and artifact inventory. Unsupported claims are retained as
   boundary checks, not promoted results.}
-  \label{fig:v3-claim-inventory}
+  \label{fig:v4-claim-inventory}
 \end{figure}
 
 \subsection{Reviewer Attack Ledger}
-\label{app:v3-attack-ledger}
+\label{app:v4-attack-ledger}
 
 The following attacks were used as a self-review checklist. They are phrased
 harshly because the paper is safer when its weak points are named before
@@ -677,7 +721,7 @@ reviewers find them.
 \begin{enumerate}
 \item The theorem is elementary order-statistics accounting. Correct; the
 paper uses it as a finite-pool audit tool, not as the novelty claim.
-\item The paper is only a controlled toy. Correct; v3 states that clearly and
+\item The paper is only a controlled toy. Correct; v4 states that clearly and
 does not claim robotics validation.
 \item The learned model is small. Correct; it is a CPU denoising ensemble used
 to test the diagnostic beyond analytic generators.
@@ -691,9 +735,9 @@ needs a good row to show the audit is not mechanically pessimistic.
 they isolate selected-tail hallucination mechanisms.
 \item Mode collapse could be dismissed as obvious. The paper uses it as one
 failure family, not the whole result.
-\item Calibration may overfit pilot labels. V3 reports held-out repair rows
+\item Calibration may overfit pilot labels. V4 reports held-out repair rows
 and lower-bound coverage.
-\item Near-oracle hidden-hazard features are non-deployable. V3 labels them as
+\item Near-oracle hidden-hazard features are non-deployable. V4 labels them as
 upper bounds.
 \item Budget 128 is not much better than budget 32 in the controlled LCB row.
 This supports the practical budget-32 claim but is not a universal rule.
@@ -715,22 +759,22 @@ defines it operationally as imagined-score/real-utility tail divergence.
 diffusion-specific diagnostics address that.
 \item The paper might be confused with action Diffusion Policy. The setup
 focuses on generated future-world trajectories conditioned on actions.
-\item The results could be sensitive to seeds. V3 adds seed robustness.
-\item The selected-tail failure could be an artifact of $K=8$. V3 adds a
+\item The results could be sensitive to seeds. V4 adds seed robustness.
+\item The selected-tail failure could be an artifact of $K=8$. V4 adds a
 denoising-versus-selection audit.
-\item The exact-law error could be hand-copied. V3 imports generated macros.
-\item The claim ledger could be stale. The v3 audit script regenerates and
+\item The exact-law error could be hand-copied. V4 imports generated macros.
+\item The claim ledger could be stale. The v4 audit script regenerates and
 checks it.
-\item The Desktop PDF could point to v2. The v3 audit checks the source map.
-\item The repository could track unversioned build PDFs. V3 should keep the
+\item The Desktop PDF could point to v2. The v4 audit checks the source map.
+\item The repository could track unversioned build PDFs. V4 should keep the
 final PDF under \texttt{paper/final/}.
-\item Figure PDFs can become nondeterministic. V3 fixes figure metadata in the
+\item Figure PDFs can become nondeterministic. V4 fixes figure metadata in the
 evidence generator.
-\item LaTeX output can become nondeterministic. V3 uses source-date settings
+\item LaTeX output can become nondeterministic. V4 uses source-date settings
 in the build script.
-\item The paper could hide unsupported claims. V3 keeps unsupported boundary
+\item The paper could hide unsupported claims. V4 keeps unsupported boundary
 claims in the visible ledger.
-\item The final page count could be met with padding. V3 adds evidence maps,
+\item The final page count could be met with padding. V4 adds evidence maps,
 protocols, and reviewer audits tied to generated artifacts.
 \item The paper could overclaim "more samples hurt." It says high $N$ can hurt
 when the score tail is miscalibrated.
@@ -738,9 +782,9 @@ when the score tail is miscalibrated.
 labels help when the error is observable.
 \item The paper could overclaim "diffusion likelihood is value." It explicitly
 separates imagined score and real utility.
-\item The paper could understate the positive result. V3 reports large
+\item The paper could understate the positive result. V4 reports large
 gap-closure numbers in controlled and learned support-covered settings.
-\item The paper could overstate the positive result. V3 labels robotics and
+\item The paper could overstate the positive result. V4 labels robotics and
 universal repair as unsupported.
 \item The paper could be too narrow for the venue. Correct rejection would ask
 for external validation, not dispute the controlled audit.
@@ -749,7 +793,7 @@ would value the diagnostic and repair protocol as a scoped contribution.
 \end{enumerate}
 
 \subsection{How to Reject or Accept This Paper Correctly}
-\label{app:v3-accept-reject}
+\label{app:v4-accept-reject}
 
 A correct rejection would not say that the finite law is false. It is exact
 under its assumptions and validated in the artifact package. A correct
@@ -771,7 +815,7 @@ A correct acceptance would view the paper as a selected-tail diagnostic for
 diffusion world models. It would value the negative result that imagined
 future scores can improve while real utility degrades, the operational gate
 semantics, and the pilot-label repair evidence. It would also value the claim
-discipline: v3 says what it has not done.
+discipline: v4 says what it has not done.
 
 A correct acceptance would not require the paper to pretend to be a robotics
 benchmark paper. Instead, it would accept the controlled contribution and ask
@@ -779,7 +823,7 @@ future work to reproduce the audit under larger diffusion-world settings with
 candidate-level logs and external real-utility labels.
 
 \subsection{External Validation Protocol}
-\label{app:v3-external-protocol}
+\label{app:v4-external-protocol}
 
 The natural v4 experiment is not another toy variant. It is an external
 validation that preserves the selected-tail audit structure. The future study
@@ -801,7 +845,7 @@ modern diffusion policy or trajectory generator, but it must keep the future
 world-model question distinct from action imitation. The third tier could
 evaluate receding-horizon deployment, where each decision logs a candidate
 pool and downstream real utility. A final hardware tier would need safety
-filters and should not be implied by the current v3 paper.
+filters and should not be implied by the current v4 paper.
 
 The same repair protocol should be tested externally. Pilot labels should be
 allocated to selected-tail, high-uncertainty, low-consistency, disagreement,
@@ -809,39 +853,39 @@ and random slices. The evaluation should report raw, calibrated,
 uncertainty-aware, consistency-aware, LCB, random, and oracle-in-pool
 selectors. The necessary outcome columns are selected real utility, imagined
 score, tail gap, oracle gap, gap closure, lower-bound coverage, and gate
-decision. This is the direct path from v3 controlled evidence to a broader
+decision. This is the direct path from v4 controlled evidence to a broader
 method paper.
 
 \subsection{Fresh-Session Workflow and Archive Contract}
-\label{app:v3-fresh-session}
+\label{app:v4-fresh-session}
 
 A fresh agent should not guess which file is final. It should read the Desktop
-source map, locate \texttt{diffusion world model-v3.pdf}, open this local
+source map, locate \texttt{diffusion world model-v4.pdf}, open this local
 folder, and verify that the GitHub repository is
 \texttt{Jason-Wang313/diffusion-world-model}. It should inspect
-\texttt{paper/final/diffusion world model-v3.pdf}, not the unversioned
+\texttt{paper/final/diffusion world model-v4.pdf}, not the unversioned
 \texttt{paper\_iclr/main.pdf} build product.
 
 The deterministic workflow is: run
-\texttt{python experiments/v3\_cached\_evidence.py}; run
-\texttt{python scripts/build\_v3\_paper.py}; run
-\texttt{python scripts/run\_v3\_claim\_audit.py}; run the test suite; inspect
-representative rendered PDF pages; then commit and push. The v3 audit checks
+\texttt{python experiments/v4\_cached\_evidence.py}; run
+\texttt{python scripts/build\_v4\_paper.py}; run
+\texttt{python scripts/run\_v4\_claim\_audit.py}; run the test suite; inspect
+representative rendered PDF pages; then commit and push. The v4 audit checks
 page count, source map, Desktop/repo hash equality, evidence thresholds,
 claim status, stale v2 Desktop artifacts, tracked build-product mistakes, and
 LaTeX blockers.
 
 The archive contract is intentionally simple. The final visible paper is the
-Desktop PDF named \texttt{diffusion world model-v3.pdf}. The final versioned
-repository artifact is \texttt{paper/final/diffusion world model-v3.pdf}. The
-generated v3 evidence cache and macros are part of the repository because the
+Desktop PDF named \texttt{diffusion world model-v4.pdf}. The final versioned
+repository artifact is \texttt{paper/final/diffusion world model-v4.pdf}. The
+generated v4 evidence cache and macros are part of the repository because the
 paper's numbers should be reproducible without searching through historical
 drafts. If a later version adds robotics or benchmark validation, it should
 create a new evidence cache and a new versioned final PDF rather than
-stretching the v3 claim boundary.
+stretching the v4 claim boundary.
 
 \subsection{Per-Figure Reading Guide}
-\label{app:v3-figure-guide}
+\label{app:v4-figure-guide}
 
 The paper now contains many figures because the selected-tail failure has
 several layers. This guide states the reviewer question answered by each
@@ -873,7 +917,7 @@ figure, the paper can look like a calibration paper. If the reader starts from
 the hallucination figure, the repair becomes the practical response to a
 measured score-tail problem.
 
-\paragraph{Figure~\ref{fig:v3-failure-landscape}: failure landscape.}
+\paragraph{Figure~\ref{fig:v4-failure-landscape}: failure landscape.}
 This figure broadens the endpoint view. It compares raw and calibrated
 $N=64$ tails across controlled and learned settings. The reviewer question is:
 which families have harmful imagined-real tail gaps, and does calibration
@@ -881,7 +925,7 @@ erase them? The answer is mixed and useful. Some rows improve, but the learned
 calibrated row still asks for pilot labels rather than giving unconditional
 permission for high-$N$ use.
 
-\paragraph{Figure~\ref{fig:v3-repair-budget}: budget sensitivity.}
+\paragraph{Figure~\ref{fig:v4-repair-budget}: budget sensitivity.}
 This figure asks whether the repair result is a one-off budget artifact. The
 controlled practical LCB repair reaches high gap closure at budget $32$ and is
 similar at budget $128$. The learned LCB repair is reported separately. The
@@ -918,16 +962,16 @@ lower-confidence selector is plausible and when coverage is weak. The
 near-oracle figure shows what would be possible with hidden hazard features or
 many labels while explicitly labeling those settings non-deployable.
 
-\paragraph{Figures~\ref{fig:v3-seed-robustness},
-\ref{fig:v3-denoising-heatmap}, and \ref{fig:v3-claim-inventory}.}
-These are v3 submission-readiness figures. They do not introduce a new claim
+\paragraph{Figures~\ref{fig:v4-seed-robustness},
+\ref{fig:v4-denoising-heatmap}, and \ref{fig:v4-claim-inventory}.}
+These are v4 submission-readiness figures. They do not introduce a new claim
 tier. They make seed variation, $K,N$ interaction, and artifact provenance
 visible to reviewers and future maintainers. They are included because a
 submission-ready controlled paper should be auditable without asking the
 reader to manually inspect every CSV file.
 
 \subsection{Statistical Reporting Policy}
-\label{app:v3-stat-policy}
+\label{app:v4-stat-policy}
 
 The paper reports means, seed variation, Monte Carlo errors, held-out repair
 metrics, and calibration coverage. These quantities are not interchangeable.
@@ -939,16 +983,16 @@ closure value says how much of that oracle gap the repair recovers.
 
 The finite-law validation uses Monte Carlo error because the theorem has an
 exact finite-pool expectation. The relevant question is whether the
-implementation matches that expectation. The v3 maximum absolute error is
-\VThreeDWMExactLawMaxError{}, which is small enough for the paper's audit
+implementation matches that expectation. The v4 maximum absolute error is
+\VFourDWMExactLawMaxError{}, which is small enough for the paper's audit
 claims. This number should never be interpreted as a real-world prediction
 error or as a learned-model calibration score.
 
 The selected-tail metrics use seed summaries because the controlled generator
-and hidden modes can vary by seed. V3 exposes \VThreeDWMSeedRows{} seed-level
+and hidden modes can vary by seed. V4 exposes \VFourDWMSeedRows{} seed-level
 rows so that a reviewer can ask whether a failure is robust. A future external
 paper should report confidence intervals or hierarchical models over tasks,
-seeds, and environment families. V3 does not need that larger hierarchy
+seeds, and environment families. V4 does not need that larger hierarchy
 because it does not claim benchmark-scale validation, but it does need enough
 seed accounting to avoid anecdotal evidence.
 
@@ -964,7 +1008,7 @@ Calibration metrics are reported as lower-bound coverage and error. The
 coverage number should be read as a diagnostic for the lower-confidence
 selector, not as a guarantee of safe control. A lower-confidence selector can
 have plausible coverage under the evaluation distribution and still fail under
-distribution shift. That is why v3 pairs calibration with gate decisions and
+distribution shift. That is why v4 pairs calibration with gate decisions and
 unsupported boundary claims.
 
 The reporting policy for future work is stricter. A robotics or benchmark
@@ -975,29 +1019,29 @@ publish failures and blocked tasks. A single aggregate success rate would not
 be enough to test the selected-tail mechanism.
 
 \subsection{Detailed Reproduction Protocol}
-\label{app:v3-reproduction-protocol}
+\label{app:v4-reproduction-protocol}
 
 The repository has two reproduction layers. The first layer is paper
 verification. It is RAM-light and should run on a normal workstation. It reads
 the existing CSV, JSON, figure, and model-summary artifacts; regenerates the
-v3 cache; compiles the paper; and checks that the repository PDF and Desktop
+v4 cache; compiles the paper; and checks that the repository PDF and Desktop
 PDF match. This is the path a fresh agent should use to verify the submitted
 artifact.
 
 The second layer is experiment regeneration. It reruns the controlled full
 experiment, trains the small learned denoising ensemble, writes all tables and
 figures, and regenerates the claim ledger. The historical full run took
-\VThreeDWMRunSeconds{} seconds with \VThreeDWMRunSeeds{} seeds,
-\VThreeDWMRunConditions{} conditions per seed, $256$ training samples, five
-epochs, \VThreeDWMLawTrials{} law-validation trials, and eight learned
+\VFourDWMRunSeconds{} seconds with \VFourDWMRunSeeds{} seeds,
+\VFourDWMRunConditions{} conditions per seed, $256$ training samples, five
+epochs, \VFourDWMLawTrials{} law-validation trials, and eight learned
 denoising steps. This layer is still CPU-first, but it is intentionally slower
 than the paper-verification layer.
 
-The recommended v3 verification sequence is:
+The recommended v4 verification sequence is:
 \begin{enumerate}
-\item Run \texttt{python experiments/v3\_cached\_evidence.py}.
-\item Run \texttt{python scripts/build\_v3\_paper.py}.
-\item Run \texttt{python scripts/run\_v3\_claim\_audit.py}.
+\item Run \texttt{python experiments/v4\_cached\_evidence.py}.
+\item Run \texttt{python scripts/build\_v4\_paper.py}.
+\item Run \texttt{python scripts/run\_v4\_claim\_audit.py}.
 \item Run \texttt{python -m pytest -q}.
 \item Render representative pages from the final PDF and check for blank
 pages, clipped figures, and source-map mistakes.
@@ -1009,19 +1053,19 @@ The recommended full-regeneration sequence is:
 on Windows with \texttt{PYTHONPATH=src}.
 \item Run \texttt{bash scripts/run\_claim\_audit.sh} or
 \texttt{python -m dwm\_tail\_audit.audit}.
-\item Run the v3 verification sequence above.
+\item Run the v4 verification sequence above.
 \end{enumerate}
 
 The verification layer should not retrain by default because the paper's final
 artifact must be easy to audit. The full-regeneration layer should remain
 available because a reviewer may want to reproduce the controlled evidence
-from code. V3 separates these layers so that a fresh session does not confuse
+from code. V4 separates these layers so that a fresh session does not confuse
 paper compilation with experiment execution.
 
 \subsection{Claim Tiers for Future Revisions}
-\label{app:v3-claim-tiers}
+\label{app:v4-claim-tiers}
 
-V3 uses four claim tiers. Tier 1 is exact finite-pool accounting. These claims
+V4 uses four claim tiers. Tier 1 is exact finite-pool accounting. These claims
 are strongest because they follow from the finite law and are validated by
 Monte Carlo. Tier 1 includes the top-tail expectation formula, tie handling,
 and exact-law validation.
@@ -1040,7 +1084,7 @@ by adding regret bounds, shift detection, or online uncertainty.
 
 Tier 4 is future external validation. This tier includes robotics benchmarks,
 hardware, modern diffusion-policy integration, large held-out task families,
-and universal repair claims. V3 may discuss Tier 4 as a path forward, but it
+and universal repair claims. V4 may discuss Tier 4 as a path forward, but it
 must not present Tier 4 as achieved. The claim ledger's unsupported entries
 exist to keep this boundary visible.
 
@@ -1050,45 +1094,45 @@ valuable if it gives a clean failure mode, a reproducible evidence package, a
 scoped repair, and a precise path to external validation. It becomes weak only
 if it hides its tier or inflates a toy result into a benchmark claim.
 
-\subsection{What V3 Does Not Need To Prove}
-\label{app:v3-not-needed}
+\subsection{What V4 Does Not Need To Prove}
+\label{app:v4-not-needed}
 
-V3 does not need to prove that all diffusion world models hallucinate under
+V4 does not need to prove that all diffusion world models hallucinate under
 selection. The paper's claim is existential and diagnostic: selected-tail
 hallucination can occur and should be audited when imagined scores choose from
 many generated futures. Proving universal failure would be false and
 unhelpful.
 
-V3 does not need to prove that more sampling always hurts. The good controlled
+V4 does not need to prove that more sampling always hurts. The good controlled
 row shows high $N$ can help when score and real utility are aligned. The
 paper's message is conditional: more samples help when the selected score tail
 contains real utility and can hurt when it does not.
 
-V3 does not need to prove that pilot labels always fix the problem. The repair
+V4 does not need to prove that pilot labels always fix the problem. The repair
 is support-covered. If hidden modes are unidentifiable from available
 features, a feature-only selector cannot guarantee recovery. The near-oracle
 upper-bound rows make this point: hidden hazard features can close the gap, but
 they are not deployable in ordinary settings.
 
-V3 does not need to run a real robot. The paper would become broader and more
+V4 does not need to run a real robot. The paper would become broader and more
 valuable with external validation, but that is a different claim tier. The
 current submission should be judged on whether the controlled selected-tail
 audit is clear, reproducible, and scientifically useful.
 
-V3 does not need to claim the finite law as novel. The law is a necessary
+V4 does not need to claim the finite law as novel. The law is a necessary
 measurement instrument. The paper's novelty is the selected-tail hallucination
 framing for diffusion world models, the controlled and learned evidence, the
 denoising-versus-selection audit, and the lower-confidence repair study.
 
 \subsection{Area-Chair Decision Simulation}
-\label{app:v3-ac-simulation}
+\label{app:v4-ac-simulation}
 
 An area chair looking at this paper will likely see two competing narratives.
 The negative narrative is that the paper is controlled and lacks external
 benchmarks. That criticism is fair. The positive narrative is that the paper
 identifies a precise failure mode in a class of generative world-model
 planners, supplies a reproducible diagnostic package, and avoids inflating its
-scope. V3 should make the positive narrative easy to find without hiding the
+scope. V4 should make the positive narrative easy to find without hiding the
 negative one.
 
 If reviewers say the paper is too toy-like, the response should not be to
@@ -1125,9 +1169,9 @@ the error observable. That is a coherent contribution even before external
 robotics validation.
 
 \subsection{Failure-Mode Taxonomy}
-\label{app:v3-failure-taxonomy}
+\label{app:v4-failure-taxonomy}
 
-The v3 paper distinguishes five failure modes. The first is optimistic future
+The v4 paper distinguishes five failure modes. The first is optimistic future
 hallucination. The generated future looks closer to the goal than the real
 hidden-mode rollout allows, so the imagined score improves faster than real
 utility. This is the cleanest selected-tail hallucination case and is the one
@@ -1144,7 +1188,7 @@ future diversity so that these cases do not collapse into one vague
 The third is plausibility-real mismatch. A future can be visually or
 kinematically plausible while still having low real utility under the hidden
 mode. This failure is important for diffusion world models because likelihood
-or plausibility can be mistaken for value. V3 explicitly blocks the claim that
+or plausibility can be mistaken for value. V4 explicitly blocks the claim that
 diffusion likelihood equals real utility.
 
 The fourth is learned-tail anti-correlation. The learned denoising ensemble
@@ -1162,7 +1206,7 @@ labels can help when they reveal the residual structure; they cannot create
 information that is absent from the feature set.
 
 \subsection{Per-Table Audit Notes}
-\label{app:v3-table-notes}
+\label{app:v4-table-notes}
 
 The repository tables have different roles. \texttt{main\_metrics.csv} is the
 primary controlled and learned selection table. It should be used for endpoint
@@ -1198,7 +1242,7 @@ full-run settings and should be cited for seeds, conditions, training samples,
 epochs, law trials, and elapsed runtime.
 
 \subsection{Benchmark-Readiness Checklist}
-\label{app:v3-benchmark-readiness}
+\label{app:v4-benchmark-readiness}
 
 The paper is not a benchmark paper, but it is useful to state what would make
 it benchmark-ready. A benchmark extension should satisfy the following
@@ -1228,20 +1272,20 @@ evidence, one can measure whether a controller succeeded, but not whether
 selection mined a harmful generated-future tail.
 
 \subsection{Submission-Readiness Checklist}
-\label{app:v3-submission-checklist}
+\label{app:v4-submission-checklist}
 
-Before v3 is treated as final, the following checks must pass:
+Before v4 is treated as final, the following checks must pass:
 \begin{enumerate}
-\item The v3 evidence script regenerates
-\texttt{results/v3\_cached\_evidence}, \texttt{figures/v3}, and
-\texttt{paper\_iclr/v3\_results\_macros.tex}.
+\item The v4 evidence script regenerates
+\texttt{results/v4\_frozen\_evidence}, \texttt{figures/v4}, and
+\texttt{paper\_iclr/v4\_results\_macros.tex}.
 \item The paper compiles with BibTeX and stable cross-references.
 \item The repository final PDF is
-\texttt{paper/final/diffusion world model-v3.pdf}.
-\item The visible Desktop PDF is \texttt{diffusion world model-v3.pdf}.
+\texttt{paper/final/diffusion world model-v4.pdf}.
+\item The visible Desktop PDF is \texttt{diffusion world model-v4.pdf}.
 \item Repository and Desktop PDFs have identical SHA-256 hashes.
 \item The final PDF has at least $25$ pages.
-\item The Desktop source map points to the v3 PDF, this local folder, and
+\item The Desktop source map points to the v4 PDF, this local folder, and
 \texttt{Jason-Wang313/diffusion-world-model}.
 \item The old v2 Desktop PDF is absent.
 \item \texttt{paper\_iclr/main.pdf} is treated as a local build product, not

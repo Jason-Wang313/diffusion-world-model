@@ -14,4 +14,4 @@ The WAM connection is theoretical: finite top-tail laws apply to any score/utili
 
 ## Robot Benchmarks
 
-Robot and large benchmark validation are not implemented in v1. The current contribution is a controlled, audit-friendly toy evidence package.
+V4 implements standard Gymnasium Classic Control replay-pool audits for candidate-level selected-tail evidence. This is deliberately not a robot benchmark, not a SOTA controller claim, and not broad robotics coverage. The current contribution is a controlled diffusion-world diagnostic plus lightweight benchmark replay-pool evidence with explicit anti-overclaim boundaries.

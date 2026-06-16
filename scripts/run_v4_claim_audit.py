@@ -12,33 +12,39 @@ from typing import Any
 
 ROOT = Path(__file__).resolve().parents[1]
 DESKTOP = Path.home() / "OneDrive" / "Desktop"
-FINAL_NAME = "diffusion world model-v3.pdf"
+FINAL_NAME = "diffusion world model-v4.pdf"
 REPO_PDF = ROOT / "paper" / "final" / FINAL_NAME
 DESKTOP_PDF = DESKTOP / FINAL_NAME
 SOURCE_MAP = DESKTOP / "PAPER_SOURCE_MAP.md"
-SUMMARY = ROOT / "results" / "v3_cached_evidence" / "summary.json"
+SUMMARY = ROOT / "results" / "v4_frozen_evidence" / "summary.json"
 CLAIMS = ROOT / "results" / "claims_status.json"
 LATEX_LOG = ROOT / "paper_iclr" / "main.log"
 
 EXPECTED_CACHE_FILES = [
-    ROOT / "results" / "v3_cached_evidence" / "summary.json",
-    ROOT / "results" / "v3_cached_evidence" / "v3_artifact_inventory.csv",
-    ROOT / "results" / "v3_cached_evidence" / "v3_calibration_diagnostics.csv",
-    ROOT / "results" / "v3_cached_evidence" / "v3_claim_inventory.csv",
-    ROOT / "results" / "v3_cached_evidence" / "v3_denoising_grid.csv",
-    ROOT / "results" / "v3_cached_evidence" / "v3_n64_tail_failures.csv",
-    ROOT / "results" / "v3_cached_evidence" / "v3_repair_budget.csv",
-    ROOT / "results" / "v3_cached_evidence" / "v3_seed_robustness.csv",
-    ROOT / "paper_iclr" / "v3_results_macros.tex",
+    ROOT / "results" / "v4_frozen_evidence" / "summary.json",
+    ROOT / "results" / "v4_frozen_evidence" / "v4_artifact_inventory.csv",
+    ROOT / "results" / "v4_frozen_evidence" / "v4_benchmark_candidates.csv",
+    ROOT / "results" / "v4_frozen_evidence" / "v4_benchmark_law_validation.csv",
+    ROOT / "results" / "v4_frozen_evidence" / "v4_benchmark_selection_curves.csv",
+    ROOT / "results" / "v4_frozen_evidence" / "v4_benchmark_summary.csv",
+    ROOT / "results" / "v4_frozen_evidence" / "v4_calibration_diagnostics.csv",
+    ROOT / "results" / "v4_frozen_evidence" / "v4_claim_inventory.csv",
+    ROOT / "results" / "v4_frozen_evidence" / "v4_denoising_grid.csv",
+    ROOT / "results" / "v4_frozen_evidence" / "v4_n64_tail_failures.csv",
+    ROOT / "results" / "v4_frozen_evidence" / "v4_repair_budget.csv",
+    ROOT / "results" / "v4_frozen_evidence" / "v4_seed_robustness.csv",
+    ROOT / "paper_iclr" / "v4_results_macros.tex",
 ]
 
 EXPECTED_FIGURES = [
-    "v3_calibration_coverage.pdf",
-    "v3_claim_artifact_inventory.pdf",
-    "v3_denoising_selection_heatmap.pdf",
-    "v3_repair_budget_curve.pdf",
-    "v3_seed_robustness.pdf",
-    "v3_tail_failure_landscape.pdf",
+    "v4_calibration_coverage.pdf",
+    "v4_claim_artifact_inventory.pdf",
+    "v4_denoising_selection_heatmap.pdf",
+    "v4_gymnasium_benchmark_baselines.pdf",
+    "v4_gymnasium_benchmark_deltas.pdf",
+    "v4_repair_budget_curve.pdf",
+    "v4_seed_robustness.pdf",
+    "v4_tail_failure_landscape.pdf",
 ]
 
 LOG_BLOCKERS = [
@@ -104,14 +110,14 @@ def pdf_pages(path: Path) -> int:
 
 def check_cache_files() -> None:
     for path in EXPECTED_CACHE_FILES:
-        require(path.exists(), f"missing v3 cache file: {path}")
+        require(path.exists(), f"missing v4 cache file: {path}")
     for name in EXPECTED_FIGURES:
-        require((ROOT / "results" / "v3_cached_evidence" / "figures" / name).exists(), f"missing result figure {name}")
-        require((ROOT / "figures" / "v3" / name).exists(), f"missing paper figure {name}")
+        require((ROOT / "results" / "v4_frozen_evidence" / "figures" / name).exists(), f"missing result figure {name}")
+        require((ROOT / "figures" / "v4" / name).exists(), f"missing paper figure {name}")
 
 
 def check_summary(summary: dict[str, Any]) -> None:
-    require(summary.get("supported_claims") >= 11, "supported claim count regressed")
+    require(summary.get("supported_claims") >= 12, "supported claim count regressed")
     require(summary.get("partial_claims") == 0, "partial claims present")
     require(summary.get("unsupported_boundary_claims") >= 5, "boundary claims missing")
     require(summary.get("result_table_files") >= 11, "result table count regressed")
@@ -135,6 +141,13 @@ def check_summary(summary: dict[str, Any]) -> None:
     require(summary.get("controlled_gap_closed_budget32", 0.0) > 0.9, "controlled budget-32 repair regressed")
     require(summary.get("learned_gap_closed_budget32", 0.0) > 0.9, "learned budget-32 repair regressed")
     require(summary.get("training_loss_last", 1.0) < summary.get("training_loss_first", 0.0), "training loss did not decrease")
+    require(summary.get("benchmark_envs") == 3, "benchmark env count regressed")
+    require(summary.get("benchmark_eval_pools", 0) >= 18, "benchmark eval-pool count regressed")
+    require(summary.get("benchmark_candidate_rows", 0) >= 1100, "benchmark candidate rows regressed")
+    require(summary.get("benchmark_curve_rows", 0) >= 1100, "benchmark curve rows regressed")
+    require(summary.get("benchmark_positive_ci_rows", 0) >= 4, "benchmark positive-CI rows regressed")
+    require(summary.get("benchmark_anti_negative_rows", 0) >= 1, "benchmark anti-scorer negative controls missing")
+    require(summary.get("benchmark_law_max_abs_error", 1.0) < 0.02, "benchmark exact-law error too high")
 
 
 def check_claims() -> None:
@@ -147,7 +160,7 @@ def check_claims() -> None:
     supported = sum(1 for claim in claims if claim.get("status") == "SUPPORTED")
     partial = sum(1 for claim in claims if claim.get("status") == "PARTIAL")
     unsupported = sum(1 for claim in claims if claim.get("status") == "UNSUPPORTED")
-    require(supported >= 11, "claim audit supported count regressed")
+    require(supported >= 12, "claim audit supported count regressed")
     require(partial == 0, "claim audit has partial claims")
     require(unsupported >= 5, "claim audit lost unsupported boundary claims")
 
@@ -156,8 +169,9 @@ def check_source_map() -> None:
     require(SOURCE_MAP.exists(), f"missing source map: {SOURCE_MAP}")
     text = SOURCE_MAP.read_text(encoding="utf-8")
     expected = f"| `{FINAL_NAME}` | `{ROOT}` | `Jason-Wang313/diffusion-world-model` |"
-    require(expected in text, "source map does not point diffusion world model to v3")
+    require(expected in text, "source map does not point diffusion world model to v4")
     require("diffusion world model-v2.pdf" not in text, "source map still contains diffusion world model v2")
+    require("diffusion world model-v3.pdf" not in text, "source map still contains diffusion world model v3")
 
 
 def check_latex_log() -> None:
@@ -173,7 +187,7 @@ def check_git_tracking() -> None:
 
 
 def main() -> None:
-    run([sys.executable, "experiments/v3_cached_evidence.py"])
+    run([sys.executable, "experiments/v4_frozen_evidence.py"])
     check_cache_files()
     check_summary(load_json(SUMMARY))
     check_claims()
@@ -184,12 +198,13 @@ def main() -> None:
     require(desktop_pages >= 25, f"Desktop final PDF has only {desktop_pages} pages")
     require(sha256(REPO_PDF) == sha256(DESKTOP_PDF), "repo and Desktop PDFs differ")
     require(not (DESKTOP / "diffusion world model-v2.pdf").exists(), "stale Desktop v2 PDF exists")
+    require(not (DESKTOP / "diffusion world model-v3.pdf").exists(), "stale Desktop v3 PDF exists")
 
     check_source_map()
     check_latex_log()
     check_git_tracking()
 
-    print("Diffusion world model v3 audit passed")
+    print("Diffusion world model v4 audit passed")
     print(f"pages={repo_pages} sha256={sha256(REPO_PDF)}")
 
 

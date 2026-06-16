@@ -68,9 +68,15 @@
     },
     {
       "group": "optional benchmark claims",
-      "claim": "External robotics or benchmark validation is implemented.",
+      "claim": "A standard Gymnasium Classic Control rollout-pool benchmark audit is implemented with random, learned-score, LCB, anti-score, and oracle baselines.",
+      "status": "SUPPORTED",
+      "evidence": "results/v4_frozen_evidence/v4_benchmark_summary.csv and v4_benchmark_selection_curves.csv"
+    },
+    {
+      "group": "unsupported future robotics claims",
+      "claim": "SOTA controller performance, real-robot validation, or broad robotics benchmark coverage is implemented.",
       "status": "UNSUPPORTED",
-      "evidence": "intentionally out of scope for v1"
+      "evidence": "v4 benchmark evidence is candidate-pool replay on Gymnasium Classic Control, not robotics/SOTA control"
     },
     {
       "group": "unsupported future robotics claims",

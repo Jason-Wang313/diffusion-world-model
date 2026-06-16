@@ -10,9 +10,10 @@ ROOT = Path(__file__).resolve().parents[1]
 PAPER_DIR = ROOT / "paper_iclr"
 TEX = PAPER_DIR / "main.tex"
 PDF = PAPER_DIR / "main.pdf"
-FINAL_NAME = "diffusion world model-v3.pdf"
+FINAL_NAME = "diffusion world model-v4.pdf"
 FINAL_PDF = ROOT / "paper" / "final" / FINAL_NAME
 DESKTOP_PDF = Path.home() / "OneDrive" / "Desktop" / FINAL_NAME
+STALE_FINAL_NAMES = ["diffusion world model-v3.pdf", "diffusion world model-v2.pdf"]
 
 
 def run(cmd: list[str], cwd: Path = ROOT) -> None:
@@ -23,7 +24,7 @@ def run(cmd: list[str], cwd: Path = ROOT) -> None:
 
 
 def main() -> None:
-    run(["python", "experiments/v3_cached_evidence.py"])
+    run(["python", "experiments/v4_frozen_evidence.py"])
     for suffix in [".aux", ".bbl", ".blg", ".log", ".out", ".pdf"]:
         target = PAPER_DIR / f"main{suffix}"
         if target.exists():
@@ -35,6 +36,10 @@ def main() -> None:
         run(["pdflatex", "-interaction=nonstopmode", TEX.name], cwd=PAPER_DIR)
 
     FINAL_PDF.parent.mkdir(parents=True, exist_ok=True)
+    for stale_name in STALE_FINAL_NAMES:
+        for stale_path in [ROOT / "paper" / "final" / stale_name, DESKTOP_PDF.parent / stale_name]:
+            if stale_path.exists():
+                stale_path.unlink()
     shutil.copy2(PDF, FINAL_PDF)
     shutil.copy2(PDF, DESKTOP_PDF)
     print(f"PDF: {DESKTOP_PDF}")

@@ -1,6 +1,14 @@
 {
   "adaptive_gate_rows": 63,
-  "artifact_files": 70,
+  "artifact_files": 73,
+  "benchmark_anti_negative_rows": 1,
+  "benchmark_candidate_rows": 1152,
+  "benchmark_curve_rows": 1134,
+  "benchmark_envs": 3,
+  "benchmark_eval_pools": 18,
+  "benchmark_law_max_abs_error": 0.013900772709148301,
+  "benchmark_lcb_min_ci_lo": -0.031277993884532056,
+  "benchmark_positive_ci_rows": 4,
   "calibration_rows": 9,
   "controlled_gap_closed_budget128": 0.9052290452549766,
   "controlled_gap_closed_budget32": 0.9092959092723352,
@@ -34,9 +42,9 @@
   "run_elapsed_seconds": 267.3014411999611,
   "run_seeds": 4,
   "seed_rows": 336,
-  "supported_claims": 11,
+  "supported_claims": 12,
   "training_loss_first": 0.2997407987713814,
   "training_loss_last": 0.1405856888741254,
   "unsupported_boundary_claims": 5,
-  "v3_figure_files": 6
+  "v4_figure_files": 8
 }

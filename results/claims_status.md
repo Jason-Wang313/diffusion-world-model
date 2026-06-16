@@ -13,7 +13,8 @@
 | calibration claims | SUPPORTED | Residual conformal calibration reports held-out lower-bound diagnostics. | results/tables/calibration_diagnostics.csv and figure8_calibration_reliability.png |
 | learned repair claims | SUPPORTED | Pilot repair closes at least 70% of the oracle gap on held-out learned diffusion-world-model conditions. | learned_pilot_repair rows in results/tables/gap_closure_by_budget.csv |
 | near-oracle upper-bound claims | SUPPORTED | Near-100% closure is possible in the controlled toy when hidden hazard features or enough labels are supplied. | repair_oracle_features rows and figure9_near_oracle_ablation.png |
-| optional benchmark claims | UNSUPPORTED | External robotics or benchmark validation is implemented. | intentionally out of scope for v1 |
+| optional benchmark claims | SUPPORTED | A standard Gymnasium Classic Control rollout-pool benchmark audit is implemented with random, learned-score, LCB, anti-score, and oracle baselines. | results/v4_frozen_evidence/v4_benchmark_summary.csv and v4_benchmark_selection_curves.csv |
+| unsupported future robotics claims | UNSUPPORTED | SOTA controller performance, real-robot validation, or broad robotics benchmark coverage is implemented. | v4 benchmark evidence is candidate-pool replay on Gymnasium Classic Control, not robotics/SOTA control |
 | unsupported future robotics claims | UNSUPPORTED | The project solves robot planning or validates on real robots. | blocked by README, docs/claims.md, and docs/final_audit.md |
 | forbidden overclaims | UNSUPPORTED | Tail selection always helps; more samples always hurt; calibration always fixes the issue; diffusion likelihood equals real utility. | blocked claim boundaries in docs/claims.md |
 | forbidden overclaims | UNSUPPORTED | Universal 100% tail-selection repair is guaranteed without additional information. | blocked by hidden-mode impossibility note in docs/theory.md |

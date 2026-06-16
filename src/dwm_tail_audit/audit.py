@@ -57,6 +57,15 @@ def build_claims(repo_root: str | Path = ".") -> list[dict[str, str]]:
     adaptive_ok = _exists_nonempty(root / "results" / "tables" / "adaptive_n_metrics.csv")
     calibration_ok = _exists_nonempty(root / "results" / "tables" / "calibration_diagnostics.csv")
     learned_gen_ok = _exists_nonempty(root / "results" / "tables" / "learned_generalization_metrics.csv")
+    benchmark_ok = all(
+        _exists_nonempty(root / "results" / "v4_frozen_evidence" / name)
+        for name in [
+            "v4_benchmark_candidates.csv",
+            "v4_benchmark_selection_curves.csv",
+            "v4_benchmark_law_validation.csv",
+            "v4_benchmark_summary.csv",
+        ]
+    )
     controlled_gap32 = _gap_value(root, "controlled_pilot_repair", "pilot_lcb", 32)
     controlled_gap128 = _gap_value(root, "controlled_pilot_repair", "pilot_lcb", 128)
     learned_gap32 = _gap_value(root, "learned_pilot_repair", "pilot_lcb", 32)
@@ -141,9 +150,15 @@ def build_claims(repo_root: str | Path = ".") -> list[dict[str, str]]:
         },
         {
             "group": "optional benchmark claims",
-            "claim": "External robotics or benchmark validation is implemented.",
+            "claim": "A standard Gymnasium Classic Control rollout-pool benchmark audit is implemented with random, learned-score, LCB, anti-score, and oracle baselines.",
+            "status": "SUPPORTED" if benchmark_ok else "UNSUPPORTED",
+            "evidence": "results/v4_frozen_evidence/v4_benchmark_summary.csv and v4_benchmark_selection_curves.csv",
+        },
+        {
+            "group": "unsupported future robotics claims",
+            "claim": "SOTA controller performance, real-robot validation, or broad robotics benchmark coverage is implemented.",
             "status": "UNSUPPORTED",
-            "evidence": "intentionally out of scope for v1",
+            "evidence": "v4 benchmark evidence is candidate-pool replay on Gymnasium Classic Control, not robotics/SOTA control",
         },
         {
             "group": "unsupported future robotics claims",
