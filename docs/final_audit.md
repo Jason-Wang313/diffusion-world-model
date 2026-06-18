@@ -1,17 +1,29 @@
 # Final Audit
 
-Verification date: 2026-06-16.
+Verification date: 2026-06-19.
+
+## Current Final Package
+
+- Final repository PDF: `paper/final/diffusion world model-v4.pdf`.
+- Final Desktop PDF: `C:\Users\wangz\OneDrive\Desktop\diffusion world model-v4.pdf`.
+- Final PDF SHA-256: `0A86BD8FC67C22EBB2FB83825351D1AF46A260F6C676DEB8F3ADE017013D3BA7`.
+- Final PDF pages: 27.
+- Matching GitHub repository: `https://github.com/Jason-Wang313/diffusion-world-model.git`.
+- Visual QA inspected rendered pages 1, 5, 7, 12, 18, 22, and 27.
 
 ## Command Results
 
 | Command | Result | Runtime |
 |---|---:|---:|
+| `python -m compileall src tests experiments scripts -q` | passed | current v4 pass |
+| `python -m pytest -q` | passed, 22 tests | current v4 pass |
 | `bash scripts/run_smoke.sh` | passed | script elapsed 100.07s; observed wall 169.2s |
 | `bash scripts/run_all.sh` | passed | script elapsed 326.10s; observed wall 368.9s |
 | `pytest` | passed, 22 tests | pytest 26.95s; observed wall 34.2s |
 | `bash scripts/run_claim_audit.sh` | passed | observed wall 19.0s |
-| `python scripts/build_v4_paper.py` | passed | regenerates frozen evidence and Desktop PDF |
-| `python scripts/run_v4_claim_audit.py` | passed | checks v4 PDF, benchmark gates, and source map |
+| `python scripts/build_v4_paper.py` | passed | regenerated frozen evidence and Desktop PDF on 2026-06-19 |
+| `python scripts/run_v4_claim_audit.py` | passed | pages=27, SHA-256 `0A86BD8FC67C22EBB2FB83825351D1AF46A260F6C676DEB8F3ADE017013D3BA7` |
+| Final LaTeX log blocker scan | passed | no undefined citations/references, rerun warnings, overfull boxes, or fatal errors |
 
 ## Artifact Inventory
 
@@ -47,6 +59,17 @@ The learned ensemble uses three CPU-first denoisers. The primary member's traini
 ## Standard Benchmark Replay-Pool Artifact
 
 V4 adds a Gymnasium Classic Control candidate-pool audit over CartPole-v1, Pendulum-v1, and MountainCarContinuous-v0. It contains 18 held-out pools, 1,152 candidate futures, random/learned-score/LCB/anti-score/oracle baselines, and exact-law validation with max absolute error below `0.014`. Four learned-score/LCB rows have positive lower confidence bounds over random; Pendulum remains a weak stress row, not a hidden failure.
+
+## V4 Acceptance Gates
+
+- The frozen evidence summary reports 12 supported claims, 0 partial claims, and 5 explicit unsupported boundary claims.
+- The v4 evidence layer contains 11 result tables, 336 seed rows, 84 main metric rows, 28 denoising-grid rows, 9 pilot-repair rows, 63 adaptive-gate rows, and 9 calibration rows.
+- The Gymnasium replay-pool layer covers 3 standard environments, 18 held-out pools, 1,152 candidate rows, 1,134 curve rows, 4 positive-CI learned-score/LCB rows over random, and 1 anti-score negative-control row.
+- The exact finite-law error is `0.0027724326261199`; the benchmark law error is `0.013900772709148301`.
+- The repo and Desktop PDFs have identical SHA-256 hashes.
+- The source map points to the v4 Desktop PDF, this local folder, and `Jason-Wang313/diffusion-world-model`.
+- Old v2/v3 Desktop diffusion PDFs are absent.
+- Representative rendered pages passed visual QA.
 
 ## Claim Boundary
 
