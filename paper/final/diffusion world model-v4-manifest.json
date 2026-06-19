@@ -4,7 +4,7 @@
   "github_remote": "https://github.com/Jason-Wang313/diffusion-world-model.git",
   "repository_pdf": "paper/final/diffusion world model-v4.pdf",
   "desktop_pdf": "C:\\Users\\wangz\\OneDrive\\Desktop\\diffusion world model-v4.pdf",
-  "sha256": "0A86BD8FC67C22EBB2FB83825351D1AF46A260F6C676DEB8F3ADE017013D3BA7",
+  "sha256": "E8339C4F40BB6EC43E2E6065F7B251E5F037F1DB42B52BF949DA2932503FFFC0",
   "pages": 27,
   "verified_on": "2026-06-19",
   "checks": {
@@ -14,9 +14,11 @@
     "paper_build": "passed",
     "claim_audit": "Diffusion world model v4 audit passed.",
     "latex_final_log_scan": "passed",
+    "boxed_link_rebuild_from_frozen_artifacts": "passed",
+    "pdf_annotation_link_audit": "76 annotations: 44 green citation boxes, 32 red internal-reference boxes; all use 1pt visible borders",
     "repo_desktop_hash_match": true,
-    "pdf_render": "all 27 pages rendered",
-    "visual_qa": "pages 1, 5, 7, 12, 18, 22, and 27 inspected"
+    "pdf_render": "selected high-risk pages rendered at moderate DPI",
+    "visual_qa": "pages 1, 3, 4, 5, 6, 7, 8, 11, 12, 15, 16, 22, 23, and 27 inspected"
   },
   "evidence_summary": {
     "supported_claims": 12,

@@ -6,10 +6,11 @@ Verification date: 2026-06-19.
 
 - Final repository PDF: `paper/final/diffusion world model-v4.pdf`.
 - Final Desktop PDF: `C:\Users\wangz\OneDrive\Desktop\diffusion world model-v4.pdf`.
-- Final PDF SHA-256: `0A86BD8FC67C22EBB2FB83825351D1AF46A260F6C676DEB8F3ADE017013D3BA7`.
+- Final PDF SHA-256: `E8339C4F40BB6EC43E2E6065F7B251E5F037F1DB42B52BF949DA2932503FFFC0`.
 - Final PDF pages: 27.
 - Matching GitHub repository: `https://github.com/Jason-Wang313/diffusion-world-model.git`.
-- Visual QA inspected rendered pages 1, 5, 7, 12, 18, 22, and 27.
+- Visual QA inspected rendered pages 1, 3, 4, 5, 6, 7, 8, 11, 12, 15, 16, 22, 23, and 27.
+- PDF annotation link audit found 76 annotations: 44 green citation boxes and 32 red internal-reference boxes, all using 1pt visible borders.
 
 ## Command Results
 
@@ -22,8 +23,9 @@ Verification date: 2026-06-19.
 | `pytest` | passed, 22 tests | pytest 26.95s; observed wall 34.2s |
 | `bash scripts/run_claim_audit.sh` | passed | observed wall 19.0s |
 | `python scripts/build_v4_paper.py` | passed | regenerated frozen evidence and Desktop PDF on 2026-06-19 |
-| `python scripts/run_v4_claim_audit.py` | passed | pages=27, SHA-256 `0A86BD8FC67C22EBB2FB83825351D1AF46A260F6C676DEB8F3ADE017013D3BA7` |
+| `python scripts/run_v4_claim_audit.py` | passed | pages=27, SHA-256 `E8339C4F40BB6EC43E2E6065F7B251E5F037F1DB42B52BF949DA2932503FFFC0` |
 | Final LaTeX log blocker scan | passed | no undefined citations/references, rerun warnings, overfull boxes, or fatal errors |
+| Boxed-link rebuild from frozen artifacts | passed | repository and Desktop PDFs match; selected high-risk pages rendered at moderate DPI |
 
 ## Artifact Inventory
 
